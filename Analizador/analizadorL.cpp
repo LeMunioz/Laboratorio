@@ -1,15 +1,15 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-
+#include "colores.cpp"
 using namespace std;
 
 /*
 ANALIZADOR LEXICO v1 [Comentarios y espacios vacios]
-Angel Eduardo Muñoz Perez
+Angel Eduardo Mu?oz Perez
 Febrero 2026
 ING COMPUTACION _ CUALTOS
-Compiladores Prof. Meño
+Compiladores Prof. Me?o
 
 FUNCIONAMIENTO
 ==== Analizador Lexico
@@ -24,7 +24,7 @@ FUNCIONAMIENTO
 		tieneContenido() que checa lineas vacias y se las brinca si ese es el caso.
 */
 
-// Función para procesar una línea y eliminar comentarios
+// Funci?n para procesar una l?nea y eliminar comentarios
 string eliminarComentarios(string linea, bool &dentroDeComentarioBloque) {
     string resultado = "";
     bool dentroDeString = false;
@@ -60,9 +60,9 @@ string eliminarComentarios(string linea, bool &dentroDeComentarioBloque) {
         if (dentroDeComentarioBloque) {
             continue;
         }        
-        // Detectar inicio de comentario de línea //
+        // Detectar inicio de comentario de l?nea //
         if (actual == '/' && siguiente == '/') {
-            break; // terminar procesamiento de esta línea
+            break; // terminar procesamiento de esta l?nea
         }        
         // Detectar inicio de comentario de bloque /*
         if (actual == '/' && siguiente == '*') {
@@ -77,7 +77,7 @@ string eliminarComentarios(string linea, bool &dentroDeComentarioBloque) {
     return resultado;
 }
 
-// Función para verificar si una línea tiene contenido
+// Funci?n para verificar si una l?nea tiene contenido
 bool tieneContenido(string linea) {
     for (int i = 0; i < linea.length(); i++) {
         if (linea[i] != ' ' && linea[i] != '\t') {
@@ -87,7 +87,7 @@ bool tieneContenido(string linea) {
     return false;
 }
 
-// Función para eliminar espacios al final
+// Funci?n para eliminar espacios al final
 string limpiarFinal(string linea) {
     while (linea.length() > 0 && (linea.back() == ' ' || linea.back() == '\t')) {
         linea.pop_back();
@@ -98,23 +98,27 @@ string limpiarFinal(string linea) {
 int main() {
     string archivoEntrada, archivoSalida;
     
-    cout << "Ingrese el nombre del archivo de entrada: ";
-    cin >> archivoEntrada;
+    color(5); cout<<"      ANALIZADOR LEXICO V1.01"<<endl;
+    color(1); cout<<"           Hecho por Muñoz"<<endl;
+              cout<<"============================================"<<endl;
     
-    cout << "Ingrese el nombre del archivo de salida: ";
-    cin >> archivoSalida;
+    color(3);cout << "Ingrese el nombre del archivo de entrada: ";
+    color(7);cin >> archivoEntrada;
+    
+    color(3);cout << "Ingrese el nombre del archivo de salida: ";
+    color(7);cin >> archivoSalida;
     
     ifstream entrada(archivoEntrada);
     ofstream salida(archivoSalida);
     
     if (!entrada.is_open()) {
-        cout << "Error: No se pudo abrir el archivo de entrada." << endl;
-        return 1;
+        color(4); cout << "Error: No se pudo abrir el archivo de entrada." << endl;
+        color(15);return 1;
     }
     
     if (!salida.is_open()) {
-        cout << "Error: No se pudo crear el archivo de salida." << endl;
-        return 1;
+        color(4); cout << "Error: No se pudo crear el archivo de salida." << endl;
+        color(15);return 1;
     }
     
     string linea;
@@ -132,7 +136,7 @@ int main() {
     entrada.close();
     salida.close();
     
-    cout << "Proceso completado en el archivo: " << archivoSalida << endl;
-    
+    color(10); cout << "Proceso completado en el archivo: " << archivoSalida << endl;
+    color(15);
     return 0;
 }
