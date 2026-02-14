@@ -24,27 +24,157 @@ FUNCIONAMIENTO
 		tieneContenido() que checa lineas vacias y se las brinca si ese es el caso.
 */
 
-// Funci?n para procesar una l?nea y eliminar comentarios
+// Funciones para detectar tipos de comentarios
+bool esComentarioLinea(string linea, int posicion) {
+    return (posicion + 1 < linea.length() && 
+            linea[posicion] == '/' && 
+            linea[posicion + 1] == '/');
+}
+bool esComentarioMultilineaInicio(string linea, int posicion) {
+    return (posicion + 1 < linea.length() && 
+            linea[posicion] == '/' && 
+            linea[posicion + 1] == '*');
+}
+bool esComentarioMultilineaFin(string linea, int posicion) {
+    return (posicion + 1 < linea.length() && 
+            linea[posicion] == '*' && 
+            linea[posicion + 1] == '/');
+}
 
-int main() {
-    string archivoOrigen, archivoDestino;
+// Funcion para verificar si un caracter es escape
+bool esCaracterEscape(string linea, int posicion) {
+    return (posicion > 0 && linea[posicion - 1] == '\\');
+}
+
+// Funcion para verificar si una linea tiene contenido real
+bool lineaTieneContenido(string linea) {
+    for (int i = 0; i < linea.length(); i++) {
+        if (linea[i] != ' ' && linea[i] != '\t') {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Funcion para procesar linea cuando hay comentario multilinea activo
+string procesarLineaConComentarioMultilinea(string linea, bool &banderaComentarioMultilinea) {
+    string resultado = "";
     
-    // Pedir archivo origen y destino
+    for (int i = 0; i < linea.length(); i++) {
+        if (esComentarioMultilineaFin(linea, i)) {
+            banderaComentarioMultilinea = false;
+            i++; // Saltar el siguiente carácter (/)
+            // Continuar procesando el resto de la linea
+            for (int j = i + 1; j < linea.length(); j++) {
+                resultado += linea[j];
+            }
+            break;
+        }
+    }
+    
+    return resultado;
+}
+
+// Funcion principal para procesar una línea
+string procesarLinea(string linea, bool &banderaComentarioMultilinea) {
+    // Si ya estamos en comentario multilinea, usar funcion especial
+    if (banderaComentarioMultilinea) {
+        return procesarLineaConComentarioMultilinea(linea, banderaComentarioMultilinea);
+    }
+    
+    bool banderaString = false;
+    bool banderaCaracter = false;
+    string lineaResultado = "";
+    
+    for (int i = 0; i < linea.length(); i++) {
+        char caracterActual = linea[i];
+        
+        switch (caracterActual) {
+            case '"':
+                // Detectar strings
+                if (!banderaCaracter && !esCaracterEscape(linea, i)) {
+                    banderaString = !banderaString;
+                }
+                lineaResultado += caracterActual;
+                break;
+                
+            case '\'':
+                // Detectar caracteres
+                if (!banderaString && !esCaracterEscape(linea, i)) {
+                    banderaCaracter = !banderaCaracter;
+                }
+                lineaResultado += caracterActual;
+                break;
+                
+            case '/':
+                // Verificar si estamos dentro de string o carácter
+                if (banderaString || banderaCaracter) {
+                    lineaResultado += caracterActual;
+                } else {
+                    // Verificar tipo de comentario
+                    if (esComentarioMultilineaInicio(linea, i)) {
+                        banderaComentarioMultilinea = true;
+                        i++; // Saltar el siguiente carácter (*)
+                    } else if (esComentarioLinea(linea, i)) {
+                        // Terminar procesamiento de esta línea
+                        return lineaResultado;
+                    } else {
+                        // Es solo un caracter /
+                        lineaResultado += caracterActual;
+                    }
+                }
+                break;
+                
+            default:
+                // Cualquier otro carácter
+                if (banderaString || banderaCaracter) {
+                    lineaResultado += caracterActual;
+                } else {
+                    lineaResultado += caracterActual;
+                }
+                break;
+        }
+    }
+    
+    return lineaResultado;
+}
+
+// FUNCIONES PARA ARBIR Y CERRAR ARCHIVO
+bool abrirArchivoOrigen(ifstream &archivo, string nombreArchivo) {
+    archivo.open(nombreArchivo);
+    return archivo.is_open();
+}
+bool abrirArchivoDestino(ofstream &archivo, string nombreArchivo) {
+    archivo.open(nombreArchivo);
+    return archivo.is_open();
+}
+
+void solicitarNombresArchivos(string &archivoOrigen, string &archivoDestino) {
     cout << "Ingrese el nombre del archivo origen: ";
     cin >> archivoOrigen;
     cout << "Ingrese el nombre del archivo destino: ";
     cin >> archivoDestino;
+}
+
+void cerrarArchivos(ifstream &origen, ofstream &destino) {
+    origen.close();
+    destino.close();
+}
+
+int main() {
+    string archivoOrigen, archivoDestino;
+    ifstream origen;
+    ofstream destino;
     
-    // Abrir archivos
-    ifstream origen(archivoOrigen);
-    ofstream destino(archivoDestino);
-    
-    if (!origen.is_open()) {
+    // Solicitar nombres de archivos
+    solicitarNombresArchivos(archivoOrigen, archivoDestino);
+
+    if (!abrirArchivoOrigen(origen, archivoOrigen)) {
         cout << "Error: No se pudo abrir el archivo origen." << endl;
         return 1;
     }
     
-    if (!destino.is_open()) {
+    if (!abrirArchivoDestino(destino, archivoDestino)) {
         cout << "Error: No se pudo crear el archivo destino." << endl;
         return 1;
     }
@@ -52,90 +182,17 @@ int main() {
     string linea;
     bool banderaComentarioMultilinea = false;
     
-    // Mientras origen tenga líneas
+    // Procesar cada linea del archivo
     while (getline(origen, linea)) {
-        bool banderaString = false;
-        bool banderaCaracter = false;
-        string lineaResultado = "";
+        string lineaResultado = procesarLinea(linea, banderaComentarioMultilinea);
         
-        // Si estamos en comentario multilinea desde antes, solo buscamos el fin
-        if (banderaComentarioMultilinea) {
-            for (int i = 0; i < linea.length(); i++) {
-                if (linea[i] == '*' && i + 1 < linea.length() && linea[i+1] == '/') {
-                    banderaComentarioMultilinea = false;
-                    i++; // Saltar el /
-                    // Continuar procesando el resto de la línea
-                    for (int j = i + 1; j < linea.length(); j++) {
-                        lineaResultado += linea[j];
-                    }
-                    break;
-                }
-            }
-        } else {
-            // Procesar línea normalmente
-            for (int i = 0; i < linea.length(); i++) {
-                char caracterActual = linea[i];
-                
-                // Detectar strings ""
-                if (caracterActual == '"' && !banderaCaracter) {
-                    if (i == 0 || linea[i-1] != '\\') {
-                        banderaString = !banderaString;
-                    }
-                    lineaResultado += caracterActual;
-                    continue;
-                }
-                
-                // Detectar caracteres ''
-                if (caracterActual == '\'' && !banderaString) {
-                    if (i == 0 || linea[i-1] != '\\') {
-                        banderaCaracter = !banderaCaracter;
-                    }
-                    lineaResultado += caracterActual;
-                    continue;
-                }
-                
-                // Si estamos dentro de un string o carácter, escribir todo
-                if (banderaString || banderaCaracter) {
-                    lineaResultado += caracterActual;
-                    continue;
-                }
-                
-                // Detectar inicio de comentario multilinea /*
-                if (caracterActual == '/' && i + 1 < linea.length() && linea[i+1] == '*') {
-                    banderaComentarioMultilinea = true;
-                    i++; // Saltar el *
-                    continue;
-                }
-                
-                // Detectar comentario de línea //
-                if (caracterActual == '/' && i + 1 < linea.length() && linea[i+1] == '/') {
-                    // Ignorar el resto de la línea
-                    break;
-                }
-                
-                // Si llegamos aquí, es un carácter normal
-                lineaResultado += caracterActual;
-            }
-        }
-        
-        // Verificar si la línea tiene contenido (no solo espacios)
-        bool lineaTieneContenido = false;
-        for (int i = 0; i < lineaResultado.length(); i++) {
-            if (lineaResultado[i] != ' ' && lineaResultado[i] != '\t') {
-                lineaTieneContenido = true;
-                break;
-            }
-        }
-        
-        // Escribir en destino si la línea tiene contenido
-        if (lineaTieneContenido) {
+        // Escribir en destino si la linea tiene contenido
+        if (lineaTieneContenido(lineaResultado)) {
             destino << lineaResultado << endl;
         }
     }
-    
     // Cerrar archivos
-    origen.close();
-    destino.close();
+    cerrarArchivos(origen, destino);
     
     cout << "Proceso completado. Archivo generado: " << archivoDestino << endl;
     
