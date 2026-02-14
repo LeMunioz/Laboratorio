@@ -25,118 +25,119 @@ FUNCIONAMIENTO
 */
 
 // Funci?n para procesar una l?nea y eliminar comentarios
-string eliminarComentarios(string linea, bool &dentroDeComentarioBloque) {
-    string resultado = "";
-    bool dentroDeString = false;
-    bool dentroDeChar = false;
-    
-    for (int i = 0; i < linea.length(); i++) {
-        char actual = linea[i];
-        char siguiente = (i + 1 < linea.length()) ? linea[i+1] : '\0';       
-        // Si ve comillas dobles (strings)
-        if (actual == '"' && !dentroDeChar && !dentroDeComentarioBloque) {
-            dentroDeString = !dentroDeString;
-            resultado += actual;
-            continue;
-        }
-        // Si ve comillas simples (chars)
-        if (actual == '\'' && !dentroDeString && !dentroDeComentarioBloque) {
-            dentroDeChar = !dentroDeChar;
-            resultado += actual;
-            continue;
-        }        
-        // Si estamos protegidos (dentro de string o char), copiar directo
-        if (dentroDeString || dentroDeChar) {
-            resultado += actual;
-            continue;
-        }        
-        // Buscar fin de comentario de bloque */
-        if (dentroDeComentarioBloque && actual == '*' && siguiente == '/') {
-            dentroDeComentarioBloque = false;
-            i++; // saltar '/'
-            continue;
-        }        
-        // Si estamos en bloque, ignorar todo
-        if (dentroDeComentarioBloque) {
-            continue;
-        }        
-        // Detectar inicio de comentario de l?nea //
-        if (actual == '/' && siguiente == '/') {
-            break; // terminar procesamiento de esta l?nea
-        }        
-        // Detectar inicio de comentario de bloque /*
-        if (actual == '/' && siguiente == '*') {
-            dentroDeComentarioBloque = true;
-            i++; // saltar '*'
-            continue;
-        }        
-        // Caracter normal, agregar al resultado
-        resultado += actual;
-    }
-    
-    return resultado;
-}
-
-// Funci?n para verificar si una l?nea tiene contenido
-bool tieneContenido(string linea) {
-    for (int i = 0; i < linea.length(); i++) {
-        if (linea[i] != ' ' && linea[i] != '\t') {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Funci?n para eliminar espacios al final
-string limpiarFinal(string linea) {
-    while (linea.length() > 0 && (linea.back() == ' ' || linea.back() == '\t')) {
-        linea.pop_back();
-    }
-    return linea;
-}
 
 int main() {
-    string archivoEntrada, archivoSalida;
+    string archivoOrigen, archivoDestino;
     
-    color(5); cout<<"      ANALIZADOR LEXICO V1.01"<<endl;
-    color(1); cout<<"           Hecho por Muñoz"<<endl;
-              cout<<"============================================"<<endl;
+    // Pedir archivo origen y destino
+    cout << "Ingrese el nombre del archivo origen: ";
+    cin >> archivoOrigen;
+    cout << "Ingrese el nombre del archivo destino: ";
+    cin >> archivoDestino;
     
-    color(3);cout << "Ingrese el nombre del archivo de entrada: ";
-    color(7);cin >> archivoEntrada;
+    // Abrir archivos
+    ifstream origen(archivoOrigen);
+    ofstream destino(archivoDestino);
     
-    color(3);cout << "Ingrese el nombre del archivo de salida: ";
-    color(7);cin >> archivoSalida;
-    
-    ifstream entrada(archivoEntrada);
-    ofstream salida(archivoSalida);
-    
-    if (!entrada.is_open()) {
-        color(4); cout << "Error: No se pudo abrir el archivo de entrada." << endl;
-        color(15);return 1;
+    if (!origen.is_open()) {
+        cout << "Error: No se pudo abrir el archivo origen." << endl;
+        return 1;
     }
     
-    if (!salida.is_open()) {
-        color(4); cout << "Error: No se pudo crear el archivo de salida." << endl;
-        color(15);return 1;
+    if (!destino.is_open()) {
+        cout << "Error: No se pudo crear el archivo destino." << endl;
+        return 1;
     }
     
     string linea;
-    bool dentroDeComentarioBloque = false;
+    bool banderaComentarioMultilinea = false;
     
-    while (getline(entrada, linea)) {
-        linea = eliminarComentarios(linea, dentroDeComentarioBloque);
-        linea = limpiarFinal(linea);
+    // Mientras origen tenga líneas
+    while (getline(origen, linea)) {
+        bool banderaString = false;
+        bool banderaCaracter = false;
+        string lineaResultado = "";
         
-        if (tieneContenido(linea)) {
-            salida << linea << endl;
+        // Si estamos en comentario multilinea desde antes, solo buscamos el fin
+        if (banderaComentarioMultilinea) {
+            for (int i = 0; i < linea.length(); i++) {
+                if (linea[i] == '*' && i + 1 < linea.length() && linea[i+1] == '/') {
+                    banderaComentarioMultilinea = false;
+                    i++; // Saltar el /
+                    // Continuar procesando el resto de la línea
+                    for (int j = i + 1; j < linea.length(); j++) {
+                        lineaResultado += linea[j];
+                    }
+                    break;
+                }
+            }
+        } else {
+            // Procesar línea normalmente
+            for (int i = 0; i < linea.length(); i++) {
+                char caracterActual = linea[i];
+                
+                // Detectar strings ""
+                if (caracterActual == '"' && !banderaCaracter) {
+                    if (i == 0 || linea[i-1] != '\\') {
+                        banderaString = !banderaString;
+                    }
+                    lineaResultado += caracterActual;
+                    continue;
+                }
+                
+                // Detectar caracteres ''
+                if (caracterActual == '\'' && !banderaString) {
+                    if (i == 0 || linea[i-1] != '\\') {
+                        banderaCaracter = !banderaCaracter;
+                    }
+                    lineaResultado += caracterActual;
+                    continue;
+                }
+                
+                // Si estamos dentro de un string o carácter, escribir todo
+                if (banderaString || banderaCaracter) {
+                    lineaResultado += caracterActual;
+                    continue;
+                }
+                
+                // Detectar inicio de comentario multilinea /*
+                if (caracterActual == '/' && i + 1 < linea.length() && linea[i+1] == '*') {
+                    banderaComentarioMultilinea = true;
+                    i++; // Saltar el *
+                    continue;
+                }
+                
+                // Detectar comentario de línea //
+                if (caracterActual == '/' && i + 1 < linea.length() && linea[i+1] == '/') {
+                    // Ignorar el resto de la línea
+                    break;
+                }
+                
+                // Si llegamos aquí, es un carácter normal
+                lineaResultado += caracterActual;
+            }
+        }
+        
+        // Verificar si la línea tiene contenido (no solo espacios)
+        bool lineaTieneContenido = false;
+        for (int i = 0; i < lineaResultado.length(); i++) {
+            if (lineaResultado[i] != ' ' && lineaResultado[i] != '\t') {
+                lineaTieneContenido = true;
+                break;
+            }
+        }
+        
+        // Escribir en destino si la línea tiene contenido
+        if (lineaTieneContenido) {
+            destino << lineaResultado << endl;
         }
     }
     
-    entrada.close();
-    salida.close();
+    // Cerrar archivos
+    origen.close();
+    destino.close();
     
-    color(10); cout << "Proceso completado en el archivo: " << archivoSalida << endl;
-    color(15);
+    cout << "Proceso completado. Archivo generado: " << archivoDestino << endl;
+    
     return 0;
 }
