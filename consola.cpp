@@ -94,7 +94,7 @@ for(int r = 1; r <= 18; r++){
     gotoxy(52, r);
     for(int c = 0; c < 103; c++) cout << "#";
 }
-// OCÉANO (rows 19-21): azul rey con '~'
+// OC?ANO (rows 19-21): azul rey con '~'
 color(1); // AZUL REY
 for(int r = 19; r <= 21; r++){
     gotoxy(52, r);
@@ -152,7 +152,7 @@ color(15); // BLANCO
 gotoxy(67,8);  cout << "NNNNNNNN";
 gotoxy(66,9);  cout << "NNNNNNNNNN";
 gotoxy(67,10); cout << "NNNNNNNN";
-// Nube pequeña centro
+// Nube peque?a centro
 color(7);
 gotoxy(85,6); cout << "NNNNN";
 gotoxy(84,7); cout << "NNNNNNN";
@@ -164,16 +164,16 @@ gotoxy(115,4); cout << "NNNNNNNNNNNNNNN";
 gotoxy(114,5); cout << "NNNNNNNNNNNNNNNNN";
 gotoxy(115,6); cout << "NNNNNNNNNNNNNNN";
 gotoxy(117,7); cout << "NNNNNNNNN";
-// Nube pequeña derecha
+// Nube peque?a derecha
 color(7);
 gotoxy(134,5); cout << "NNNNNN";
 gotoxy(133,6); cout << "NNNNNNNN";
 gotoxy(134,7); cout << "NNNNNN";
 // ---------------------------------------------
-// CAPA 4: MONTAÑAS IZQUIERDA (cols 52-76, rows 12-18)
-// Triángulos rellenos con '#' gris, contorno blanco
+// CAPA 4: MONTA?AS IZQUIERDA (cols 52-76, rows 12-18)
+// Tri?ngulos rellenos con '#' gris, contorno blanco
 // ---------------------------------------------
-// -- Montaña izq: pico col 61 --
+// -- Monta?a izq: pico col 61 --
 color(8); // GRIS
 for(int r = 12; r <= 17; r++){
     int half = r - 12;
@@ -182,7 +182,7 @@ for(int r = 12; r <= 17; r++){
     gotoxy(left, r);
     for(int c = left; c <= right; c++) cout << "#";
 }
-// Contorno blanco montaña izq
+// Contorno blanco monta?a izq
 color(15);
 for(int r = 13; r <= 17; r++){
     int half = r - 12;
@@ -190,7 +190,7 @@ for(int r = 13; r <= 17; r++){
     gotoxy(61 + half, r); cout << "\\";
 }
 gotoxy(61, 12); cout << "^"; // pico
-// -- Montaña der (del grupo izq): pico col 70 --
+// -- Monta?a der (del grupo izq): pico col 70 --
 color(8);
 for(int r = 13; r <= 17; r++){
     int half = r - 13;
@@ -206,14 +206,14 @@ for(int r = 14; r <= 17; r++){
     gotoxy(70 + half, r); cout << "\\";
 }
 gotoxy(70, 13); cout << "^";
-// Base verde bajo montañas izq
+// Base verde bajo monta?as izq
 color(10); // VERDE
 gotoxy(52, 18);
 for(int c = 0; c < 28; c++) cout << "~";
 // ---------------------------------------------
-// CAPA 4b: MONTAÑAS DERECHA (cols 128-154, rows 12-18)
+// CAPA 4b: MONTA?AS DERECHA (cols 128-154, rows 12-18)
 // ---------------------------------------------
-// -- Montaña izq del grupo der: pico col 136 --
+// -- Monta?a izq del grupo der: pico col 136 --
 color(8);
 for(int r = 12; r <= 17; r++){
     int half = r - 12;
@@ -233,7 +233,7 @@ for(int r = 13; r <= 17; r++){
 }
 gotoxy(136, 12); cout << "^";
 
-// -- Montaña der del grupo der: pico col 147 --
+// -- Monta?a der del grupo der: pico col 147 --
 color(8);
 for(int r = 13; r <= 17; r++){
     int half = r - 13;
@@ -252,7 +252,7 @@ for(int r = 14; r <= 17; r++){
     gotoxy(rp, r); cout << "\\";
 }
 gotoxy(147, 13); cout << "^";
-// Base verde montañas der
+// Base verde monta?as der
 color(10);
 gotoxy(127, 18);
 for(int c = 0; c < 28; c++) cout << "~";
@@ -331,7 +331,7 @@ color(15);
 gotoxy(118,9);  cout << "|";
 gotoxy(118,10); cout << "|";
 gotoxy(117,11); cout << "[|]";
-// Ventanas pequeñas
+// Ventanas peque?as
 color(11);
 gotoxy(117,12); cout << "[.]";
 gotoxy(117,13); cout << "[.]";
@@ -386,7 +386,7 @@ color(15);
 gotoxy(82, 18);
 for(int c = 0; c < 44; c++) cout << "=";
 // ---------------------------------------------
-// CAPA 6: OCÉANO (rows 19-21) con tramas de ondas
+// CAPA 6: OC?ANO (rows 19-21) con tramas de ondas
 // ---------------------------------------------
 // Row 19: olas azul claro
 color(11); // CELESTE
@@ -396,7 +396,7 @@ for(int c = 0; c < 103; c++) cout << (c % 5 < 2 ? '~' : '#');
 color(9); // AZUL
 gotoxy(52, 20);
 for(int c = 0; c < 103; c++) cout << (c % 4 < 2 ? '~' : '#');
-// Row 21: oscuro, más profundo
+// Row 21: oscuro, m?s profundo
 color(1); // AZUL REY
 gotoxy(52, 21);
 for(int c = 0; c < 103; c++) cout << (c % 5 < 3 ? '~' : '+');
@@ -407,7 +407,7 @@ gotoxy(103, 20); cout << "||||";
 // ---------------------------------------------
 // CAPA 7: PLATAFORMA Y PUENTE (rows 22-29)
 // ---------------------------------------------
-// Línea superior de plataforma (borde del agua)
+// L?nea superior de plataforma (borde del agua)
 color(15);
 gotoxy(52, 22);
 for(int c = 0; c < 103; c++) cout << "=";
@@ -573,7 +573,7 @@ gotoxy(111,31); cout << "[ SYSTEM LOG - LIVE FEED ]";
 color(8);
 gotoxy(111,32); cout << "-----------------------------";
 
-// -- Líneas de log (estilo syslog con timestamps) --
+// -- L?neas de log (estilo syslog con timestamps) --
 color(8);   gotoxy(111,33); cout << "01:33:07 ";
 color(12);  cout << "ALERT  ";
 color(15);  cout << "port scan 443";
