@@ -23,117 +23,40 @@ gotoxy(1,7); cout<<"   |_|   |_| |_____| |_|\\___| \\___/  |_____|";
 gotoxy(1,9); cout<<"      ====================================";
 color(1);
 gotoxy(1,15);cout<<" Escoge el sistema";
-drawBox(20,11,29,11);
-// -- ROW 12: Cabello superior (castaño, redondeado) ------------
-color(6); // AMARILLO OCRE = pelo castaño
-gotoxy(26,12); cout << ".-----------.";
 
-// -- ROW 13: Clips amarillos + volumen lateral del pelo --------
-
+// -- DIBUJO DE LA YUI ------------
+gotoxy(21,11);
+color(6); cout<<"     -= ``` == _";
+gotoxy(21,12);
+		  cout<<"   /             \\";
+gotoxy(21,13);
+		  cout<<"  |   /|  |  \\     \\ ";
+gotoxy(26,13);		  
+color(14);cout<<"==";
 color(6);
-gotoxy(25,13); cout << "/ /";
-gotoxy(28,13); cout << "__/_/  ";  // flequillo/pelo
-gotoxy(35,13); cout << " \\ \\ \\";
-gotoxy(28,14); cout << "/";
-
-// -- ROW 14: Ojos chibi simples --------------------------------
+gotoxy(21,14);
+		  cout<<"  /    -\\ /  = \\|   |";
+gotoxy(26,14);		  
+color(14);cout<<"==";
 color(6);
-gotoxy(25,14); cout << "| |";
-color(14);  // piel cara
-gotoxy(28,14); cout << "  ";
-// ojo izquierdo
-color(7);   // GRIS OSCURO
-gotoxy(30,14); cout << "(";
-color(15);  // BLANCO - brillo
-gotoxy(31,14); cout << "0";
-color(7);
-gotoxy(32,14); cout << ")";
-color(14);
-gotoxy(33,14); cout << "  ";
-// ojo derecho
-color(7);
-gotoxy(35,14); cout << "(";
-color(15);
-gotoxy(36,14); cout << "0";
-color(7);
-gotoxy(37,14); cout << ")";
-color(14);
-gotoxy(38,14); cout << "  ";
+gotoxy(21,15);
+		  cout<<" |   |          | | \\";
+gotoxy(29,15);		  
+color(15);cout<<"0     0";
 color(6);
-gotoxy(39,14); cout << "| |";
-
-// -- ROW 15: Mejillas rosadas + nariz (minimalista) ------------
+gotoxy(21,16);
+		  cout<<" |   |          | \\_|";
+gotoxy(28,16);		  
+color(12);cout<<"##     ##";
 color(6);
-gotoxy(25,15); cout << "| |";
-color(12);  // ROJO CLARO - rubor mejilla izq
-gotoxy(28,15); cout << ",,";
-color(14);  // nariz - solo un punto
-gotoxy(31,15); cout << "  .  ";
-color(12);  // rubor mejilla der
-gotoxy(36,15); cout << ",,";
-color(14);
-gotoxy(38,15); cout << "  ";
-color(6);
-gotoxy(39,15); cout << "| |";
-
-// -- ROW 16: Boquita tierna ------------------------------------
-color(6);
-gotoxy(25,16); cout << "| |";
-color(14);
-gotoxy(28,16); cout << "    ";
-color(15);  // BLANCO - boca
-//gotoxy(32,16); cout << "(";
-color(12);  // tono labio
-gotoxy(33,16); cout << "V";
-color(15);
-//gotoxy(34,16); cout << ")";
-color(14);
-gotoxy(35,16); cout << "    ";
-color(6);
-gotoxy(39,16); cout << "| |";
-
-// -- ROW 17: Menton redondo ------------------------------------
-color(6);
-gotoxy(25,17); cout << "\\ \\";
-color(14);
-gotoxy(28,17); cout << " \\";
-gotoxy(30,17); cout << "_______";
-gotoxy(37,17); cout << "/ ";
-color(6);
-gotoxy(39,17); cout << "/ /";
-
-// -- ROW 18: Cuello + collar blanco ---------------------------
-color(15);  // BLANCO - collar
-gotoxy(30,18); cout << "/|";
-gotoxy(32,18); cout << "===";
-gotoxy(35,18); cout << "|\\";
-color(14);  // piel cuello
-gotoxy(32,18); cout << " = ";
-
-// -- ROW 19: Chaqueta oscura (azul marino) ---------------------
-color(1);   // AZUL REY - chaqueta
-gotoxy(26,19); cout << "_/";
-gotoxy(28,19); cout << "/ ";
-color(15);  // BLANCO - camisa interior
-gotoxy(30,19); cout << "|";
-gotoxy(31,19); cout << "   ";
-gotoxy(34,19); cout << "|";
-color(1);   // chaqueta der
-gotoxy(35,19); cout << " \\";
-gotoxy(37,19); cout << "\\_";
-
-// -- ROW 20: Cuerpo chaqueta -----------------------------------
-color(1);   // AZUL REY
-gotoxy(24,20); cout << "___/ ";
-gotoxy(29,20); cout << "/";
-color(15);  // camisa blanca centro
-gotoxy(30,20); cout << "     ";
-color(1);
-gotoxy(35,20); cout << "\\";
-gotoxy(36,20); cout << " \\___";
-color(14); // CREMA - clips (pasadores)
-gotoxy(25,13); cout << "cc";
-
+gotoxy(21,17);
+		  cout<<"  \\/| \\         \\ /\\/";
+gotoxy(21,18);
+		  cout<<"     \\/";	
+gotoxy(29,18);		  
+color(14);cout<<"`--__--``";
+color(15);		  	  		  		  	  		  
+		  
 
 
 
