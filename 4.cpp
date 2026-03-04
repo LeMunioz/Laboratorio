@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <string>
 #include "Frontend/frontend.cpp"
 using namespace std;
 
@@ -56,29 +57,76 @@ void dibujarMatriz(){
             gotoxy(x, y);
             cout << matriz[c][f]; 
         }
-    }		
-	
+    }			
 }
 
+bool turnoPar(short turno){
+	return turno % 2 == 0 ? true : false;
+}
+
+void jugada(string jugador){
+	cout<<"escoge en que lugar poner la ficha";
+	gotoxy(10,3);
+	Menu escogerColumna({" v  v  v  v  v  v  v  v"},MenuTipo::Horizontal);
+	int opcion = escogerColumna.mostrar();
+}
+
+//////////////////////////////////
 //JUEGO CONTRA OTRO JUGADOR
+//////////////////////////////////
+
 void jugarJ(){
-	short turno=0;
-	bool victoria=false;
+	short turno=1;
+	bool noHayVictoria=true;
 	system("cls");
+	int jugadorGanador = 0;
 	
 	cout<<"entro a J";
 	iniciarMatriz(matriz);
 	
-	dibujarMatriz();
-	
-		
-}
+	while(noHayVictoria){
+		dibujarMatriz();
+		if(checar4enLinea()){
+			switch(jugadorGanador){
+				case 1: 
+					Victoria("jugador 1");
+					break;
+				case 2:
+					Victoria("jugador 2");
+					break;
+				default:
+					cout<<"NO PUES NO SE COMO NO GANO 1 o 2";
+					return 0;
+					break;	
+			}
+		}else{
+			if(turno == 48){
+				color(2);
+				cout<<"EMPATE"<<endl;
+				return 0;
+			}else{
+				if (turnoPar()){
+					jugada("jugador2");
+				}else{
+					jugada("jugador1");
+				}
+			}
+		}
+			
+	}//fin de while 
+}//fin de jugarJ()
 
+//////////////////////////////////
 //JUEGO CONTRA EL CPU
+//////////////////////////////////
+
 void JugarC(){
 	cout<<"entro a C";
 }
 
+///////////////////////////
+//   MAIN
+///////////////////////////
 
 int main(){
 	color(3);
