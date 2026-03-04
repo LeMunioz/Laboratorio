@@ -14,6 +14,7 @@ Angel Eduardo Muñoz Perez
 //////////////////////////////
 
 char matriz [8][6];
+int turno = 0;
 
 //////////////////////////////
 //  FUNCIONES
@@ -64,11 +65,99 @@ bool turnoPar(short turno){
 	return turno % 2 == 0 ? true : false;
 }
 
+void ponerFichaAhi(string jugador, int columna){
+	bool sigueCayendo = true;
+	short filaActual =0;
+	//poner la ficha arriba en esa casilla
+	switch (jugador){
+		case "jugador1":
+			color(1);
+			matriz [0][columna] = "X";
+			color(15);
+			//si cabe mas abajo, dibujar como va cayendo
+			while(sigueCayendo){
+				if(matriz[filaActual+1][columna] == " " && filaActual < 7){
+					matriz[filaActual][columna] = " ";
+					filaActual += 1;
+					matriz[filaActual][columna] = "X";
+				}else{
+					break;
+				}
+			}
+			break;	
+		case "jugador2":
+			color(4);
+			matriz [0][columna] = "O";
+			color(15);
+			//si cabe mas abajo, dibujar como va cayendo
+			while(sigueCayendo){
+				if(matriz[filaActual+1][columna] == " " && filaActual < 7){
+					matriz[filaActual][columna] = " ";
+					filaActual += 1;
+					matriz[filaActual][columna] = "O";
+				}else{
+					break;
+				}
+			break;
+		default:
+			cout<<"HUBO UN ERROR la columna escogida no tiene jugador asignado";
+			break;
+			
+	}
+	
+}
+
 void jugada(string jugador){
 	cout<<"escoge en que lugar poner la ficha";
 	gotoxy(10,3);
-	Menu escogerColumna({" v  v  v  v  v  v  v  v"},MenuTipo::Horizontal);
-	int opcion = escogerColumna.mostrar();
+	Menu escogerColumna({" v "," v "," v "," v "," v "," v "," v "," v"},MenuTipo::Horizontal);
+	int columnaEscogida = escogerColumna.mostrar();
+	bool NoSePuedePonerAhi = true;
+	
+	while (NoSePuedePonerAhi){
+		if(matriz[0][columnaEscogida] != " "){
+			cout<<"ahi ya esta ocupado, escoge otro lado"<<endl;
+		}else{
+			switch(columnaEscogida){
+				case 0:
+					ponerFichaAhi (jugador, 0);		
+					break:
+				case 1:
+					ponerFichaAhi (jugador, 1);
+					break:
+				case 2:
+					ponerFichaAhi (jugador, 2);
+					break:
+				case 3:	
+					ponerFichaAhi (jugador, 3);
+					break:
+				case 4:
+					ponerFichaAhi (jugador, 4);
+					break:
+				case 5:
+					ponerFichaAhi (jugador, 5);
+					break:
+				case 6:
+					ponerFichaAhi (jugador, 6);
+					break:
+				case 7:
+					ponerFichaAhi (jugador, 7);
+					break:
+				case 8:
+					ponerFichaAhi (jugador, 8);
+					break:
+				default:
+				
+					break:	
+			}
+		}
+		NosePuedePonerAhi = false;		
+	}	
+	turno ++;
+}
+
+bool checar4enLinea(){
+
 }
 
 //////////////////////////////////
@@ -76,7 +165,6 @@ void jugada(string jugador){
 //////////////////////////////////
 
 void jugarJ(){
-	short turno=1;
 	bool noHayVictoria=true;
 	system("cls");
 	int jugadorGanador = 0;
