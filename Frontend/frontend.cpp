@@ -7,127 +7,172 @@
 using namespace std;
 
 /*
-LIBRERIA DE FRONT-END PARA C++
-Hecho por: Angel Eduardo Mu?oz Perez & Javier Garnica Escamilla 
++------------------------------------------------------------------+
+¦         LIBRERIA DE FRONT-END PARA C++                          ¦
+¦         Hecho por: Angel Eduardo Muñoz Perez                    ¦
+¦                  & Javier Garnica Escamilla                     ¦
++------------------------------------------------------------------+
 
-imprimir en colores en consola - - - - 1
-imprimir con cordenadas en consola - - 2
-validacion de entrada de datos - - - - 3
-menus interactivos - - - - - - - - - - 4
-botones y cajas interactivos - - - - - 5
-tama?o de consolas - - - - - - - - - - 6
-animacion de textos- - - - - - - - - - 7
+    FUNCIONES:
+        1) Imprimir en colores en consola  - - - - -  1
+        2) Imprimir con coordenadas        - - - - -  2
+        3) Validación de entrada de datos  - - - - -  3
+        4) Menús interactivos              - - - - -  4
+        5) Botones y cajas interactivos    - - - - -  5
+        6) Tamaño de consola               - - - - -  6
+        7) Animación de textos             - - - - -  7
 
 
+///////////////////////////////////////////////////////////////////
 1) IMPRIMIR EN COLORES EN CONSOLA
-    Todo lo que se imprima despu?s cambiar? de color seg?n el valor asignado.
+///////////////////////////////////////////////////////////////////
+    Todo lo que se imprima despues cambiara de color segun el valor.
     COLORES DISPONIBLES:
-        [1]   AZUL REY
-        [2]   VERDE
-        [3]   AZUL CYAN
-        [4]   ROJO
-        [5]   VIOLETA
-        [6]   AMARILLO OCRE
-        [7]   GRIS MUY CLARO
-        [8]   GRIS
-        [9]   AZUL
-        [10]  VERDE PASTO
-        [11]  CELESTE
-        [12]  ROJO CLARO
-        [13]  MORADO
-        [14]  CREMA
-        [15]  BLANCO
-        [16]++ FONDO DE COLOR
+        [1]  AZUL REY     [2]  VERDE        [3]  AZUL CYAN
+        [4]  ROJO         [5]  VIOLETA      [6]  AMARILLO OCRE
+        [7]  GRIS CLARO   [8]  GRIS         [9]  AZUL
+        [10] VERDE PASTO  [11] CELESTE      [12] ROJO CLARO
+        [13] MORADO       [14] CREMA        [15] BLANCO
+        [16++] FONDO DE COLOR
 
-    Ejemplo de sintaxis:
-        color(12);   // Pinta en rojo claro
-        cout << "Hola mundo en rojo";
+    Sintaxis:
+        color(12);
+        cout << "Hola en rojo claro";
 
-2) IMPRIMIR CON CORDENADAS EN CONSOLA
-    Puedes mover el cursor de escritura a una posici?n exacta antes de imprimir.
-    - gotoxy(x, y)  ? mueve en columnas (x) y renglones (y)
-    - gotox(x)      ? mueve solo a la columna x, respetando el rengl?n actual
 
-    Ejemplo de sintaxis:
+///////////////////////////////////////////////////////////////////
+2) IMPRIMIR CON COORDENADAS EN CONSOLA
+///////////////////////////////////////////////////////////////////
+    Mueve el cursor antes de imprimir.
+        gotoxy(x, y)  ?  columna x, renglón y
+        gotox(x)      ?  solo columna x, renglón actual
+
+    Sintaxis:
         gotoxy(10, 5);
-        cout << "Texto empieza en 10,5";
+        cout << "Texto en 10,5";
 
-3) VALIDACION DE ENTRADA DE DATOS
-    Estas funciones permiten validar lo que el usuario escribe evitando errores comunes.
 
-    PARA VALIDAR ENTEROS:
-        leerOpcion(minimo, maximo);
-    La funci?n solo acepta n?meros dentro del rango indicado.
-    
-    Ejemplo:
-        int edad = leerOpcion(1, 120);
+///////////////////////////////////////////////////////////////////
+3) VALIDACIÓN DE ENTRADA DE DATOS
+///////////////////////////////////////////////////////////////////
+    Validan lo que escribe el usuario evitando errores.
 
-    PARA VALIDAR CARACTERES:
-        leerCharOpcional({ 's', 'n', 'a' });
-    La funci?n convierte a min?sculas y solo acepta uno de los caracteres permitidos en formato de vector.
+    ENTEROS:
+        int n = leerOpcion(minimo, maximo);
 
-    Ejemplo:
-        char c = leerCharOpcional({'s','n'});
-        // Solo acepta s o n (may?sculas tambi?n funcionan)
+    CARACTERES:
+        char c = leerCharOpcional({'s', 'n', 'a'});
+        // Solo acepta los caracteres del vector (mayús. también)
 
-4) MENUS INTERACTIVOS
-    Sistema de men?s navegables usando flechas < > ^ v & ENTER.
-    Soporta estos tipos de menu:
-        - Men? vertical      
-        - Men? horizontal 		
-        - Modo autom?tico (elige el mejor seg?n ancho)
 
-    Sintaxis b?sica:
-        Menu miMenu({"Opcion 1", "Opcion 2", ... "OpcionN"}MenuTipo:"tipo");
+///////////////////////////////////////////////////////////////////
+4) MENÚS INTERACTIVOS
+///////////////////////////////////////////////////////////////////
+    Menús navegables con flechas y ENTER.
+
+    TIPOS DE MENÚ  (MenuTipo::):
+        Vertical    ?  opciones apiladas de arriba a abajo
+        Horizontal  ?  opciones en una sola línea
+        Auto        ?  elige automáticamente según el ancho disponible
+        Matriz      ?  cuadrícula 2D, navega en las 4 direcciones
+
+    SINTAXIS BÁSICA ----------------------------------------------
+
+        Menu miMenu({"Op 1", "Op 2", "Op 3"}, MenuTipo::Vertical);
         int elegido = miMenu.mostrar();
 
-5) BOTONES INTERACTIVOS
+    PARAMETROS DE ESTILO (opcionales, se pasan a mostrar()) ------
+
+        miMenu.mostrar(colorSeleccion, mostrarIndicador)
+            colorSeleccion  ?  número de color (1-15) del ítem activo
+                               por defecto: 2 (verde)
+            mostrarIndicador?  true  muestra "[>] Opción"
+                               false muestra solo "Opción"
+                               por defecto: true
+
+    POSICION MANUAL ----------------------------------------------
+        Si no se llama a setPos(), el menu se dibuja donde esté el
+        cursor en ese momento.
+
+            miMenu.setPos(x, y);
+            miMenu.mostrar();
+
+    MENU MATRIZ --------------------------------------------------
+        Para crear una cuadricula, pasa un vector de vectores y el
+        número de columnas. Se navega con las 4 flechas.
+        Retorna {fila, columna} de la celda seleccionada.
+
+            MenuMatriz mm({
+                {"[ ]", "[ ]", "[ ]"},
+                {"[ ]", "[ ]", "[ ]"}
+            });
+            pair<int,int> pos = mm.mostrar();
+            int fila    = pos.first;
+            int columna = pos.second;
+
+        Tambien acepta setPos(), color e indicador:
+            mm.setPos(x, y);
+            mm.mostrar(colorSeleccion, mostrarIndicador);
 
 
-6) CONSOLA DE TAMA?O   
+///////////////////////////////////////////////////////////////////
+5) BOTONES Y CAJAS INTERACTIVOS
+///////////////////////////////////////////////////////////////////
+    drawBox(x, y, ancho, alto)    ?  dibuja un rectángulo con bordes
+    drawButton(x, y, texto, activo) ?  botón con estado activo/inactivo
 
 
-7) ANIMACION DE TEXTOS
+///////////////////////////////////////////////////////////////////
+6) TAMAÑO DE CONSOLA
+///////////////////////////////////////////////////////////////////
+    setConsoleSize(columnas, renglones);
 
-     
+
+///////////////////////////////////////////////////////////////////
+7) ANIMACIÓN DE TEXTOS
+///////////////////////////////////////////////////////////////////
+    escribirAnimado(x, y, texto, delayMs)  ?  efecto máquina de escribir
+    textoFade(x, y, texto)                 ?  aparece de gris a blanco
 */
 
 
-//	==========  //
-//  CORDENADAS  //
-//	==========  // 
-void gotoxy(int x,int y){
-	HANDLE hcon;
-	hcon = GetStdHandle(STD_OUTPUT_HANDLE);
-	COORD dwPos;
-	
-	dwPos.X = x;
-	dwPos.Y = y;
-	
-	SetConsoleCursorPosition(hcon,dwPos);
+// -------------------------------------------------- //
+//  SECCIÓN 2 — COORDENADAS
+// -------------------------------------------------- //
+
+void gotoxy(int x, int y){
+    HANDLE hcon = GetStdHandle(STD_OUTPUT_HANDLE);
+    COORD dwPos;
+    dwPos.X = x;
+    dwPos.Y = y;
+    SetConsoleCursorPosition(hcon, dwPos);
 }
+
 void gotox(int x){
-	HANDLE hcon;
-	hcon = GetStdHandle(STD_OUTPUT_HANDLE);
-	COORD dwPos;
-	
-	dwPos.X = x;
-	
-	SetConsoleCursorPosition(hcon,dwPos);
+    HANDLE hcon = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(hcon, &csbi);
+    COORD dwPos;
+    dwPos.X = x;
+    dwPos.Y = csbi.dwCursorPosition.Y;
+    SetConsoleCursorPosition(hcon, dwPos);
 }
 
-//	=======  //
-//  COLORES  //
-//	======== //
-void color(int color){
-	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	
-	SetConsoleTextAttribute(hConsole, color);
+
+// -------------------------------------------------- //
+//  SECCIÓN 1 — COLORES
+// -------------------------------------------------- //
+
+void color(int c){
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, c);
 }
 
-//	======================  //
-//  VALIDACION DE ENTRADAS  
-//	======================  //
+
+// -------------------------------------------------- //
+//  SECCIÓN 3 — VALIDACIÓN DE ENTRADAS
+// -------------------------------------------------- //
+
 int leerOpcion(int min, int max) {
     int opcion;
     while (true) {
@@ -135,10 +180,11 @@ int leerOpcion(int min, int max) {
         if (!cin.fail() && opcion >= min && opcion <= max) break;
         cin.clear();
         cin.ignore(10000, '\n');
-        cout << "Entrada inv?lida. Intenta nuevamente: ";
+        cout << "Entrada inválida. Intenta nuevamente: ";
     }
     return opcion;
 }
+
 char leerCharOpcional(vector<char> opciones) {
     char c;
     while (true) {
@@ -147,94 +193,114 @@ char leerCharOpcional(vector<char> opciones) {
         for (auto o : opciones) {
             if (c == o) return c;
         }
-        cout << "Entrada inv?lida. Intenta nuevamente: ";
+        cout << "Entrada inválida. Intenta nuevamente: ";
     }
 }
 
-//  ==================  //
-//  MENUS INTERACTIVOS  //
-//	==================  //
+
+// -------------------------------------------------- //
+//  SECCIÓN 4 — MENÚS INTERACTIVOS
+// -------------------------------------------------- //
+
 enum class MenuTipo {
     Vertical,
     Horizontal,
     Auto
 };
 
+
+//  Clase Menu  (Vertical / Horizontal / Auto)
 class Menu {
 private:
     vector<string> opciones;
     int seleccionado;
     MenuTipo tipo;
 
-    // Posici?n donde se dibuja el men?
     int posX = -1, posY = -1;
 
-    // Limpia las l?neas previas del men? sin borrar toda la pantalla
+    // Borra el area donde esta dibujado el menu antes de redibujar
     void limpiarArea(int lineas) {
-        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
         for (int i = 0; i < lineas; i++) {
             gotoxy(posX, posY + i);
-            cout << string(120, ' '); // borra la l?nea
+            cout << string(120, ' ');
         }
+    }
+
+    // Dibuja todas las opciones en columna
+    // Si mostrarIndicador=true  ? "[>] Opcion" / "[ ] Opcion"
+    // Si mostrarIndicador=false ? solo "Opcion" con color activo/inactivo
+    void dibujarVertical(int colorSeleccion, bool mostrarIndicador) {
+        for (int i = 0; i < (int)opciones.size(); i++) {
+            gotoxy(posX, posY + i);
+
+            if (i == seleccionado) {
+                color(colorSeleccion);
+                if (mostrarIndicador) cout << "[>] ";
+                cout << opciones[i];
+            } else {
+                color(15);
+                if (mostrarIndicador) cout << "[ ] ";
+                cout << opciones[i];
+            }
+        }
+        color(15);
+    }
+
+    // Dibuja todas las opciones en una sola línea.
+    // NOTA: NO se agrega espaciado automático entre elementos.
+    //       Si necesitas separación, inclúyela en el texto de cada opción.
+    void dibujarHorizontal(int colorSeleccion, bool mostrarIndicador) {
+        gotoxy(posX, posY);
+        for (int i = 0; i < (int)opciones.size(); i++) {
+            if (i == seleccionado) {
+                color(colorSeleccion);
+                if (mostrarIndicador) cout << "[>] ";
+                cout << opciones[i];
+            } else {
+                color(15);
+                if (mostrarIndicador) cout << "[ ] ";
+                cout << opciones[i];
+            }
+        }
+        color(15);
+    }
+
+    // Calcula si todas las opciones caben en una línea horizontal
+    bool cabeEnLinea() {
+        int ancho = 0;
+        for (auto& op : opciones)
+            ancho += (int)op.size() + 4; // +4 por el "[>] " o "[ ] "
+        return ancho < 110;
     }
 
 public:
     Menu(const vector<string>& opciones, MenuTipo tipo = MenuTipo::Auto)
         : opciones(opciones), seleccionado(0), tipo(tipo) {}
 
-    // Permite elegir manualmente d?nde dibujar el men?
+    // Fija la posicion donde se dibujara el menu.
+    // Si no se llama, se dibuja donde esté el cursor al invocar mostrar().
     void setPos(int x, int y) {
         posX = x;
         posY = y;
     }
 
-    // Regresa el texto de la opci?n seleccionada
+    // Retorna el texto de la opcion actualmente seleccionada
     string obtenerSeleccion() {
         return opciones[seleccionado];
     }
 
-    bool cabeEnLinea() {
-        int ancho = 0;
-        for (auto& op : opciones)
-            ancho += op.size() + 6;
-        return ancho < 110;
-    }
-
-    void dibujarVertical() {
-        for (int i = 0; i < opciones.size(); i++) {
-            gotoxy(posX, posY + i);
-
-            if (i == seleccionado) {
-                color(2);
-                cout << "[>] " << opciones[i];
-            } else {
-                color(15);
-                cout << "[ ] " << opciones[i];
-            }
-        }
-    }
-
-    void dibujarHorizontal() {
-        gotoxy(posX, posY);
-
-        for (int i = 0; i < opciones.size(); i++) {
-            if (i == seleccionado) {
-                color(2);
-                cout << "[>] " << opciones[i] << "   ";
-            } else {
-                color(15);
-                cout << "[ ] " << opciones[i] << "   ";
-            }
-        }
-    }
-
-    // ----------- AQUI OCURRE LAS COSAS -----------
-    int mostrar() {
-        const int ENTER = 13;
+    // -- mostrar() --------------------------------------------------
+    // Muestra el menu y espera a que el usuario presione ENTER.
+    // Retorna el índice (0-inicio) de la opcion elegida.
+    //
+    // Parametros:
+    //   colorSeleccion  ?  color del ítem activo        (default: 2 = verde)
+    //   mostrarIndicador?  muestra "[>]" / "[ ]"        (default: true)
+    int mostrar(int colorSeleccion = 2, bool mostrarIndicador = true) {
+        const int ENTER  = 13;
         const int PREFIX = 224;
 
-        // Si no se defini? posici?n: se dibuja donde est? el cursor
+        // Si no se fijo posicion, dibujar donde esté el cursor ahora
         if (posX == -1 || posY == -1) {
             CONSOLE_SCREEN_BUFFER_INFO csbi;
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
@@ -242,23 +308,20 @@ public:
             posY = csbi.dwCursorPosition.Y;
         }
 
+        // Resolver tipo Auto
         MenuTipo tipoFinal = tipo;
         if (tipo == MenuTipo::Auto) {
             tipoFinal = cabeEnLinea() ? MenuTipo::Horizontal : MenuTipo::Vertical;
         }
 
         while (true) {
+            limpiarArea(tipoFinal == MenuTipo::Vertical ? (int)opciones.size() : 1);
 
-            // Limpia SOLO el ?rea ocupada por el men?, sin borrar pantalla
-            limpiarArea(tipoFinal == MenuTipo::Vertical ? opciones.size() : 1);
-
-            // Lo vuelve a dibujar en su misma posici?n
             if (tipoFinal == MenuTipo::Vertical)
-                dibujarVertical();
+                dibujarVertical(colorSeleccion, mostrarIndicador);
             else
-                dibujarHorizontal();
+                dibujarHorizontal(colorSeleccion, mostrarIndicador);
 
-            // Leer tecla
             int tecla = getch();
 
             if (tecla == ENTER)
@@ -266,83 +329,198 @@ public:
 
             if (tecla == PREFIX) {
                 int flecha = getch();
-
                 switch (flecha) {
-                case 72: // arriba
-                case 75: // izquierda
-                    seleccionado--;
-                    break;
-
-                case 80: // abajo
-                case 77: // derecha
-                    seleccionado++;
-                    break;
+                    case 72: case 75: seleccionado--; break; // arriba / izquierda
+                    case 80: case 77: seleccionado++; break; // abajo  / derecha
                 }
-
-                if (seleccionado < 0) seleccionado = opciones.size() - 1;
-                if (seleccionado >= opciones.size()) seleccionado = 0;
+                if (seleccionado < 0)                      seleccionado = (int)opciones.size() - 1;
+                if (seleccionado >= (int)opciones.size())  seleccionado = 0;
             }
         }
     }
 };
 
-//  ============================ //
-//  BOTONES Y CAJAS INTERACTIVOS //
-//  ============================ //
+
+// -------------------------------------------------
+//  Clase MenuMatriz  (cuadrícula 2D navegable)
+// -------------------------------------------------
+//
+//  Permite crear un menú en forma de tabla donde el usuario
+//  se desplaza con las 4 flechas (? ? ? ?) y confirma con ENTER.
+//
+//  Cada celda es un string. Las filas deben tener el mismo
+//  número de columnas.
+//
+//  EJEMPLO DE USO:
+//
+//      MenuMatriz mm({
+//          {" A1 ", " A2 ", " A3 "},
+//          {" B1 ", " B2 ", " B3 "},
+//          {" C1 ", " C2 ", " C3 "}
+//      });
+//      mm.setPos(5, 3);
+//      pair<int,int> resultado = mm.mostrar(10, false);
+//      int filaElegida    = resultado.first;
+//      int columnaElegida = resultado.second;
+//
+class MenuMatriz {
+private:
+    vector<vector<string>> celdas; // [fila][columna]
+    int filas;
+    int columnas;
+    int filaActual    = 0;
+    int columnaActual = 0;
+
+    int posX = -1, posY = -1;
+
+    // Borra toda el area de la cuadricula antes de redibujar
+    void limpiarArea() {
+        for (int fila = 0; fila < filas; fila++) {
+            gotoxy(posX, posY + fila);
+            cout << string(120, ' ');
+        }
+    }
+
+    // Dibuja la cuadrícula completa.
+    // La celda activa se resalta con colorSeleccion.
+    // Si mostrarIndicador=true, la celda activa lleva "[>]" adelante.
+    void dibujar(int colorSeleccion, bool mostrarIndicador) {
+        for (int fila = 0; fila < filas; fila++) {
+            gotoxy(posX, posY + fila);
+            for (int col = 0; col < columnas; col++) {
+                bool estaSeleccionado = (fila == filaActual && col == columnaActual);
+
+                if (estaSeleccionado) {
+                    color(colorSeleccion);
+                    if (mostrarIndicador) cout << "[>]";
+                    cout << celdas[fila][col];
+                } else {
+                    color(15);
+                    if (mostrarIndicador) cout << "[ ]";
+                    cout << celdas[fila][col];
+                }
+            }
+        }
+        color(15);
+    }
+
+public:
+    MenuMatriz(const vector<vector<string>>& celdas)
+        : celdas(celdas) {
+        filas    = (int)celdas.size();
+        columnas = (filas > 0) ? (int)celdas[0].size() : 0;
+    }
+
+    // Fija la posicion donde se dibujara la cuadricula.
+    // Si no se llama, se dibuja donde este el cursor al invocar mostrar().
+    void setPos(int x, int y) {
+        posX = x;
+        posY = y;
+    }
+
+    // Retorna el texto de la celda actualmente seleccionada
+    string obtenerSeleccion() {
+        return celdas[filaActual][columnaActual];
+    }
+
+    // -- mostrar() --------------------------------------------------
+    // Muestra la cuadrícula y espera a que el usuario presione ENTER.
+    // Retorna pair<fila, columna> de la celda elegida (índices 0-based).
+    //
+    // Parametros:
+    //   colorSeleccion  ?  color de la celda activa     (default: 2 = verde)
+    //   mostrarIndicador?  muestra "[>]" / "[ ]"        (default: true)
+    pair<int,int> mostrar(int colorSeleccion = 2, bool mostrarIndicador = true) {
+        const int ENTER  = 13;
+        const int PREFIX = 224;
+
+        // Si no se fijo posicion, dibujar donde esté el cursor ahora
+        if (posX == -1 || posY == -1) {
+            CONSOLE_SCREEN_BUFFER_INFO csbi;
+            GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+            posX = csbi.dwCursorPosition.X;
+            posY = csbi.dwCursorPosition.Y;
+        }
+
+        while (true) {
+            limpiarArea();
+            dibujar(colorSeleccion, mostrarIndicador);
+
+            int tecla = getch();
+
+            if (tecla == ENTER)
+                return { filaActual, columnaActual };
+
+            if (tecla == PREFIX) {
+                int flecha = getch();
+                switch (flecha) {
+                    case 72: filaActual--;    break; // ? arriba
+                    case 80: filaActual++;    break; // ? abajo
+                    case 75: columnaActual--; break; // ? izquierda
+                    case 77: columnaActual++; break; // ? derecha
+                }
+
+                // Wraparound: si sale de los limites, aparece por el lado opuesto
+                if (filaActual < 0)          filaActual    = filas    - 1;
+                if (filaActual >= filas)     filaActual    = 0;
+                if (columnaActual < 0)       columnaActual = columnas - 1;
+                if (columnaActual >= columnas) columnaActual = 0;
+            }
+        }
+    }
+};
+
+
+// -------------------------------------------------- //
+//  SECCION 5 — BOTONES Y CAJAS INTERACTIVOS
+// -------------------------------------------------- //
+
 void drawBox(int x, int y, int w, int h) {
-    // Esquinas
     gotoxy(x, y);         cout << char(218);
     gotoxy(x + w, y);     cout << char(191);
     gotoxy(x, y + h);     cout << char(192);
     gotoxy(x + w, y + h); cout << char(217);
 
-    // Horizontales
     for (int i = 1; i < w; i++) {
         gotoxy(x + i, y);     cout << char(196);
         gotoxy(x + i, y + h); cout << char(196);
     }
 
-    // Verticales
     for (int i = 1; i < h; i++) {
         gotoxy(x, y + i);     cout << char(179);
         gotoxy(x + w, y + i); cout << char(179);
     }
 }
 
-// -- BOTONES -- //
 void drawButton(int x, int y, string texto, bool activo) {
-    int w = texto.size() + 4;
-
+    int w = (int)texto.size() + 4;
     color(activo ? 10 : 15);
     drawBox(x, y, w, 2);
-
     gotoxy(x + 2, y + 1);
     cout << texto;
-
     color(15);
 }
 
 
-//  ================= //
-//  TAMA?O DE CONSOLA //
-//  ================= //
+// -------------------------------------------------- //
+//  SECCION 6 — TAMAÑO DE CONSOLA
+// -------------------------------------------------- //
+
 void setConsoleSize(int cols, int rows) {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    // Ajustar buffer
     COORD bufferSize = { (SHORT)cols, (SHORT)rows };
     SetConsoleScreenBufferSize(hOut, bufferSize);
-
-    // Ajustar ventana
     SMALL_RECT windowSize = { 0, 0, (SHORT)(cols - 1), (SHORT)(rows - 1) };
     SetConsoleWindowInfo(hOut, TRUE, &windowSize);
 }
 
-//  ==================== //
-//  ANIMACIONES DE TEXTO //
-//  ==================== //
-// Escribir tipo maquina de texto
-void escribirAnimado(int x, int y, string texto, int delayMs = 30) {
+
+// -------------------------------------------------- //
+//  SECCION 7 — ANIMACIONES DE TEXTO
+// -------------------------------------------------- //
+
+// Escribe el texto caracter a caracter simulando una maquina de escribir
+void escribirAnimado(int x, int y, string texto, int delayMs = 40) {
     gotoxy(x, y);
     for (char c : texto) {
         cout << c;
@@ -350,7 +528,7 @@ void escribirAnimado(int x, int y, string texto, int delayMs = 30) {
     }
 }
 
-//fade in usando colores (de negro a blanco)
+// Hace aparecer el texto con fade-in: de gris oscuro hasta blanco
 void textoFade(int x, int y, string texto) {
     int colores[] = {8, 7, 15};
     for (int c : colores) {
