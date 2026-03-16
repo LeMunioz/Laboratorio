@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checador de Clima</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+    }
+ 
+    header {
+      background-color: #333;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+ 
+    header h1 {
+      margin: 0;
+      font-size: 1.6rem;
+    }
+ 
+    .contenido {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+ 
+    .fila-superior {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+ 
+    .caja {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 20px;
+      flex: 1;
+    }
+ 
+    .caja h2 {
+      margin-top: 0;
+      font-size: 1rem;
+      color: #555;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+ 
+    #temp-numero {
+      font-size: 5rem;
+      font-weight: bold;
+      text-align: center;
+      color: #333;
+      line-height: 1;
+      margin-bottom: 4px;
+      transition: color 0.5s;
+    }
+ 
+    #temp-numero.frio   { color: #2196F3; }
+    #temp-numero.normal { color: #4CAF50; }
+    #temp-numero.calor  { color: #FF9800; }
+ 
+    .temp-unidad {
+      text-align: center;
+      color: #888;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+ 
+    .humedad-label {
+      font-size: 0.85rem;
+      color: #555;
+      margin-bottom: 6px;
+    }
+ 
+    .barra-fondo {
+      background: #e0e0e0;
+      border-radius: 4px;
+      height: 14px;
+      overflow: hidden;
+    }
+ 
+    .barra-relleno {
+      height: 100%;
+      background: #64B5F6;
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.8s;
+    }
+ 
+    .humedad-valor {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #333;
+      margin-top: 6px;
+    }
+ 
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+ 
+    .stat-item:last-child { border-bottom: none; }
+ 
+    .stat-nombre { color: #666; font-size: 0.9rem; }
+ 
+    .stat-valor {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #333;
+    }
+ 
+    #ultima-lectura {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #999;
+      margin-top: 16px;
+    }
+ 
+    .caja-historial {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+ 
+    .caja-historial h2 {
+      margin-top: 0;
+      font-size: 1rem;
+      color: #555;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+      margin-bottom: 0;
+    }
+ 
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+ 
+    thead tr { background-color: #f5f5f5; }
+ 
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+    }
+ 
+    th { color: #555; font-weight: normal; }
+    td { color: #333; }
+    tbody tr:hover { background-color: #fafafa; }
+ 
+    footer {
+      background-color: #333;
+      color: #ccc;
+      text-align: center;
+      padding: 16px;
+      font-size: 0.85rem;
+    }
+ 
+    @media (max-width: 600px) {
+      .fila-superior { flex-direction: column; }
+      #temp-numero { font-size: 4rem; }
+    }
+  </style>
+</head>
+<body>
+ 
+  <header>
+    <h1>CHECADOR DE CLIMA DE LA FURGONETA DE CUALTOS</h1>
+  </header>
+ 
+  <div class="contenido">
+ 
+    <div class="fila-superior">
+ 
+      <!-- Temperatura y Humedad -->
+      <div class="caja">
+        <h2>Temperatura y Humedad</h2>
+        <div id="temp-numero">--</div>
+        <div class="temp-unidad">grados Celsius</div>
+        <div class="humedad-label">Humedad relativa</div>
+        <div class="barra-fondo">
+          <div class="barra-relleno" id="hum-barra"></div>
+        </div>
+        <div class="humedad-valor" id="hum-valor">-- %</div>
+        <div id="ultima-lectura">Última lectura: —</div>
+      </div>
+ 
+      <!-- Estadísticas -->
+      <div class="caja">
+        <h2>Estadísticas de la última hora</h2>
+        <div class="stat-item">
+          <span class="stat-nombre">Promedio</span>
+          <span class="stat-valor" id="stat-avg">-- °C</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-nombre">Máxima</span>
+          <span class="stat-valor" id="stat-max">-- °C</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-nombre">Mínima</span>
+          <span class="stat-valor" id="stat-min">-- °C</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-nombre">Total de lecturas</span>
+          <span class="stat-valor" id="stat-count">--</span>
+        </div>
+      </div>
+ 
+    </div>
+ 
+    <!-- Historial -->
+    <div class="caja-historial">
+      <h2>Historial de temperaturas</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha y hora</th>
+            <th>Temperatura</th>
+            <th>Humedad</th>
+          </tr>
+        </thead>
+        <tbody id="historial-body">
+          <tr><td colspan="3" style="color:#aaa;text-align:center;padding:20px;">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+ 
+  </div>
+ 
+  <footer>
+    Angel Muñoz &nbsp;·&nbsp; Fabian Candia
+  </footer>
+ 
+<script>
+  function actualizarTemp(t) {
+    const el = document.getElementById("temp-numero");
+    el.textContent = t.toFixed(1);
+    el.className = "";
+    if (t < 20)       el.classList.add("frio");
+    else if (t <= 30) el.classList.add("normal");
+    else              el.classList.add("calor");
+  }
+ 
+  function conectarSSE() {
+    const es = new EventSource("/api/eventos");
+    es.onmessage = e => {
+      try {
+        const d = JSON.parse(e.data);
+        if (!d || !d.temp_c) return;
+        actualizarTemp(d.temp_c);
+        if (d.humedad != null) {
+          document.getElementById("hum-valor").textContent = d.humedad.toFixed(1) + " %";
+          document.getElementById("hum-barra").style.width = d.humedad + "%";
+        }
+        const fecha = new Date(d.timestamp).toLocaleString("es-MX");
+        document.getElementById("ultima-lectura").textContent = "Última lectura: " + fecha;
+        cargarHistorial();
+      } catch(_) {}
+    };
+    es.onerror = () => { es.close(); setTimeout(conectarSSE, 5000); };
+  }
+ 
+  async function cargarHistorial() {
+    try {
+      const r = await fetch("/api/historia");
+      const j = await r.json();
+      if (!j.ok) return;
+ 
+      if (j.stats && j.stats.count > 0) {
+        document.getElementById("stat-avg").textContent   = j.stats.promedio.toFixed(1) + " °C";
+        document.getElementById("stat-max").textContent   = j.stats.maxima.toFixed(1) + " °C";
+        document.getElementById("stat-min").textContent   = j.stats.minima.toFixed(1) + " °C";
+        document.getElementById("stat-count").textContent = j.stats.count;
+      }
+ 
+      const filas = [...j.data].reverse();
+      const tbody = document.getElementById("historial-body");
+      if (filas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="color:#aaa;text-align:center;padding:20px;">Sin datos aún</td></tr>';
+        return;
+      }
+      tbody.innerHTML = filas.map(f => {
+        const fecha = new Date(f.timestamp).toLocaleString("es-MX");
+        const hum   = f.humedad != null ? f.humedad.toFixed(1) + " %" : "—";
+        return `<tr><td>${fecha}</td><td>${f.temp_c.toFixed(1)} °C</td><td>${hum}</td></tr>`;
+      }).join("");
+    } catch(e) { console.error(e); }
+  }
+ 
+  async function cargarUltimo() {
+    try {
+      const r = await fetch("/api/ultima");
+      const j = await r.json();
+      if (j.ok && j.data) {
+        actualizarTemp(j.data.temp_c);
+        if (j.data.humedad != null) {
+          document.getElementById("hum-valor").textContent = j.data.humedad.toFixed(1) + " %";
+          document.getElementById("hum-barra").style.width = j.data.humedad + "%";
+        }
+        const fecha = new Date(j.data.timestamp).toLocaleString("es-MX");
+        document.getElementById("ultima-lectura").textContent = "Última lectura: " + fecha;
+      }
+    } catch(_) {}
+  }
+ 
+  cargarUltimo();
+  cargarHistorial();
+  conectarSSE();
+  setInterval(cargarHistorial, 300000);
+</script>
+ 
+</body>
+</html>
