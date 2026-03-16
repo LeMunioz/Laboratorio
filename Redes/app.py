@@ -4,6 +4,7 @@
   Monitor de Temperatura — Servidor Flask en Raspberry Pi
   Raspberry Pi 3  ·  DHT22 / DHT11 / DS18B20
   Sirve la página web + API REST + eventos en tiempo real (SSE)
+  ANGEL EDUARDO MUÑOZ PEREZ
 =============================================================
 """
 
@@ -17,10 +18,10 @@ from datetime import datetime
 from flask import Flask, Response, jsonify, render_template, stream_with_context
 
 # ─────────────────────────────────────────────────────────
-#  CONFIGURACIÓN  ← Edita estos valores
+#  CONFIGURACIÓN  [CREOQ QUE LO ENCHUFMAOS MAL EN CUALTOS XDXD]
 # ─────────────────────────────────────────────────────────
-GPIO_PIN         = 4          # Pin GPIO BCM del sensor
-TIPO_SENSOR      = "DHT22"    # "DHT22", "DHT11" o "DS18B20"
+GPIO_PIN         = 4          #<--------
+TIPO_SENSOR      = "DHT22"    
 INTERVALO_SEG    = 300        # 5 minutos entre lecturas
 SQLITE_ARCHIVO   = "temperaturas.db"
 FLASK_PORT       = 5000
@@ -121,7 +122,7 @@ def leer_ds18b20() -> tuple[float | None, None]:
             return None, None
         return round(int(lines[1].split("t=")[1]) / 1000.0, 2), None
     except Exception as e:
-        print(f"  ❌ DS18B20: {e}")
+        print(f"  X DS18B20: {e}")
         return None, None
 
 
@@ -149,7 +150,7 @@ def _broadcast_sse(data: dict):
 
 
 def loop_sensor():
-    print(f"  🌡️  Hilo de sensor iniciado ({TIPO_SENSOR}, GPIO{GPIO_PIN})")
+    print(f"    Hilo de sensor iniciado ({TIPO_SENSOR}, GPIO{GPIO_PIN})")
     ciclo = 0
     while True:
         ciclo += 1
@@ -157,11 +158,11 @@ def loop_sensor():
         temp_c, humedad = leer_sensor()
 
         if temp_c is None:
-            print(f"  ⚠️  [{timestamp}] Sin lectura, reintentando en 10s")
+            print(f"  !!!  [{timestamp}] Sin lectura, reintentando en 10s")
             time.sleep(10)
             continue
 
-        print(f"  ✅  [{timestamp}] Ciclo #{ciclo}  {temp_c}°C  H:{humedad}%")
+        print(f"  (:  [{timestamp}] Ciclo #{ciclo}  {temp_c}°C  H:{humedad}%")
         guardar_lectura(timestamp, temp_c, humedad)
 
         # Empujar al browser vía SSE
@@ -214,7 +215,7 @@ def api_eventos():
     with _sse_lock:
         _sse_queues.append(q)
 
-    # Enviar último valor inmediatamente al conectar
+    # Enviar ultimo valor inmediatamente al conectar
     ultima = obtener_ultima()
     initial = f"data: {json.dumps(ultima or {})}\n\n" if ultima else ""
 
