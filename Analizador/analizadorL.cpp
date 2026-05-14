@@ -345,7 +345,6 @@ int main() {
         cout << "Ingrese el nombre del archivo origen: ";
         color(7);
         cin >> archivoOrigen;
-
         if (archivoOrigen == "AnalizadorL.cpp") {
             color(12);
             cout << "ESTIMADO!!!! NO VUELVAS A COMETER EL MISMO ERROR, ESCOGE ALGO QUE NO SEA EL MISMO COMPILADOR PARA COMPILARLO >:{" << endl;
@@ -427,5 +426,6 @@ int main() {
     cout << "\nTotal de tokens encontrados: " << tokens.size() << endl;
     color(15);
 
+	
     return 0;
 }// fin de main
