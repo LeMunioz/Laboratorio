@@ -921,7 +921,6 @@ int main() {
     cout << "\n===== RESULTADO DEL ANALISIS SEMANTICO =====" << endl;
     color(15);
 
-    huboError = false;
     analizarSemantica(arbol);
 
     // Veredicto final
