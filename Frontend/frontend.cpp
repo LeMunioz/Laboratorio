@@ -25,7 +25,6 @@ using namespace std;
         5) Botones y cajas interactivos    - - - - -  5
         6) Tamaño de consola               - - - - -  6
         7) Animación de textos             - - - - -  7
-        8) Explorador de archivos          - - - - -  8
 
 
 ///////////////////////////////////////////////////////////////////
@@ -139,122 +138,12 @@ using namespace std;
     escribirAnimado(x, y, texto, delayMs)  ?  efecto máquina de escribir
     textoFade(x, y, texto)                 ?  aparece de gris a blanco
     
-//////////////////////////////////////////////////////////////////
-//  SECCION 8 — EXPLORADOR DE ARCHIVOS EN CONSOLA
-//////////////////////////////////////////////////////////////////
-
-	Permite navegar el sistema de archivos desde la consola
-	dentro de una caja dibujada. Muestra directorios en
-	amarillo ocre y archivos en verde pasto.
-
-	FUNCIONES PRINCIPALES:
-
-    string explorarArchivo(ModoExplorador modo)
-	   ? Abre el explorador y retorna la ruta del archivo elegido.
-       Si el usuario cancela, retorna "".
-
-       void abrirArchivoEntrada(ifstream& archivo)
-       ? Pregunta al usuario si quiere cargar un archivo,
-       abre el explorador y deja el ifstream listo para usar.
-	void abrirArchivoSalida(ofstream& archivo)
-       ? Pregunta al usuario si quiere guardar un archivo,
-       abre el explorador y deja el ofstream listo para usar.
-
-    CONTROLES DEL EXPLORADOR:
-      Flecha arriba / abajo  ?  mover seleccion
-      ENTER                  ?  abrir directorio o seleccionar archivo
-      Shift                  ?  retroceder al directorio anterior
-      Escribir + ENTER       ?  buscar/seleccionar por nombre en el directorio actual
-      ESC                    ?  cancelar y salir sin seleccionar
-
-    COLORES:
-      Amarillo ocre  (6)   ?  directorios
-      Verde pasto   (10)   ?  archivos
-
-//  EJEMPLO DE USO:
-
-    Para cargar:
-      ifstream entrada;
-      abrirArchivoEntrada(entrada);
-      if (entrada.is_open()) { ... }
-
-    Para guardar:
-     ofstream salida;
-     abrirArchivoSalida(salida);
-     if (salida.is_open()) { ... }
-
-    O directamente si ya sabes el modo:
-      string ruta = explorarArchivo(ModoExplorador::Cargar);
-      if (!ruta.empty()) { ... }
+///////////////////////////////////////////////////////////////////
+8) EXPLORADOR DE ARCHIVOS
+///////////////////////////////////////////////////////////////////    
+	
 
 
-   --------------//
-   SECION 6 - EXPLORADOR DE ARCHIVOS INTERACTIVO
-   -------------- //
-
-
-
-	NAVEGADOR DE ARCHIVOS INTERACTIVO
-
-
-    Esta seccion contiene funciones para crear un explorador de 
-    archivos integrado en la consola, permitiendo al usuario cargar 
-    o guardar archivos de forma intuitiva.
-
-	CARACTERISTICAS:
-    - Navegacion por directorios con flechas arriba/abajo
-    - Colores segun tipo de archivo:
-        * Amarillo claro (14): archivos .txt y .cpp
-        * Azul (9): directorios/carpetas
-        * Gris (8): otros archivos
-    - Entrar a directorio: presionar ENTER sobre una carpeta
-    - Retroceder: tecla TABULADOR o escribir ".." + ENTER
-    - Cancelar: tecla BLOQ MAYUS (Caps Lock)
-    - Buscar/escribir: escribir el nombre del archivo y presionar ENTER
-    - Altura adaptable: por defecto 16 renglones, crece si hay muchos archivos
-    - Encabezado: "Explorador" + ruta actual
-    - Pie de pagina: instrucciones de uso
-
-	FUNCIONES PRINCIPALES:
-    
-    1) explorarArchivos(modo)
-       Abre el explorador interactivo.
-       Parametro: modo = ModoExplorador::Cargar  o  ModoExplorador::Guardar
-       Retorna: string con la ruta completa seleccionada, o "" si se cancela
-
-    2) abrirArchivoEntrada(ifstream& archivo)
-       Abre el explorador en modo Cargar y abre el archivo en lectura
-
-    3) abrirArchivoSalida(ofstream& archivo)
-       Abre el explorador en modo Guardar y abre el archivo en escritura
-
-	EJEMPLO DE USO:
-    
-    // Para cargar un archivo
-    ifstream entrada;
-    abrirArchivoEntrada(entrada);
-    if (entrada.is_open()) {
-        string linea;
-        while (getline(entrada, linea)) {
-            cout << linea << endl;
-        }
-        entrada.close();
-    }
-
-    // Para guardar un archivo
-    ofstream salida;
-    abrirArchivoSalida(salida);
-    if (salida.is_open()) {
-        salida << "Contenido del archivo" << endl;
-        salida.close();
-    }
-
-    // Para obtener la ruta manualmente
-    string ruta = explorarArchivos(ModoExplorador::Cargar);
-    if (!ruta.empty()) {
-        cout << "Seleccionaste: " << ruta << endl;
-    }
-    
 */
 
 
@@ -663,8 +552,10 @@ void textoFade(int x, int y, string texto) {
 }
 
 // -------------------------------------------------- //
-//  SECCION 8 — EXPLORADOR DE ARCHIVOS
+//  SECCION 8 — EXPLORADOR DE ARCHIVOS EN CONSOLA
 // -------------------------------------------------- //
+
+
 
 enum class ModoExplorador {
     Cargar,
@@ -677,7 +568,8 @@ struct EntradaArchivo {
 };
 
 // Constantes del explorador
-constexpr int EXPL_ALTO_MIN    = 16;    // Altura minima del explorador
+constexpr int EXPL_MAX_FILAS_VISIBLES = 16;
+constexpr int EXPL_ALTO_MIN    = 17;    // Altura minima del explorador
 constexpr int EXPL_ANCHO       = 80;    // Ancho fijo
 constexpr int EXPL_MARGEN_Y    = 2;     // Espacio vertical del margen
 
@@ -745,47 +637,27 @@ int obtenerColorArchivo(const string& nombre, bool esDirectorio) {
 
 // Calcula altura y posicion del explorador segun cantidad de archivos
 pair<int, int> calcularDimensiones(int cantArchivos) {
-    int altoRequerido = cantArchivos + 6; // +6 para encabezado, pies, espacios
+    int altoRequerido = min(cantArchivos, EXPL_MAX_FILAS_VISIBLES) + 7;
     int altoFinal = max(EXPL_ALTO_MIN, altoRequerido);
-    
+
     // Centrar verticalmente (aproximadamente)
     int posY = max(1, (25 - altoFinal) / 2);
-    
+
     return {altoFinal, posY};
+}
+
+// Ajusta un texto al ancho disponible sin invadir los bordes
+string ajustarAlAncho(const string& texto, int maxLen) {
+    if (maxLen <= 0) return "";
+    if ((int)texto.size() <= maxLen) return texto;
+    if (maxLen <= 3) return texto.substr(0, maxLen);
+    return texto.substr(0, maxLen - 3) + "...";
 }
 
 // Dibuja la caja del explorador con bordes
 void dibujarCajaExplorador(int ancho, int alto, int x, int y) {
-    color(8);
-    
-    // Esquina superior izquierda
-    gotoxy(x, y);
-    cout << char(201);
-    
-    // Linea superior
-    for (int i = 1; i < ancho - 1; i++) cout << char(205);
-    
-    // Esquina superior derecha
-    cout << char(187);
-    
-    // Lados
-    for (int linea = 1; linea < alto - 1; linea++) {
-        gotoxy(x, y + linea);
-        cout << char(186);
-        gotoxy(x + ancho - 1, y + linea);
-        cout << char(186);
-    }
-    
-    // Esquina inferior izquierda
-    gotoxy(x, y + alto - 1);
-    cout << char(200);
-    
-    // Linea inferior
-    for (int i = 1; i < ancho - 1; i++) cout << char(205);
-    
-    // Esquina inferior derecha
-    cout << char(188);
-    
+    color(7);                       // gris claro
+    drawBox(x, y, ancho - 1, alto - 1);
     color(15);
 }
 
@@ -798,23 +670,29 @@ void limpiarInteriorExplorador(int ancho, int alto, int x, int y) {
     }
 }
 
-// Dibuja encabezado "Explorador" centrado
-void dibujarTituloExplorador(int ancho, int x, int y) {
+// Dibuja encabezado "Explorador" junto con la ruta actual
+void dibujarTituloExplorador(int ancho, int x, int y, const fs::path& ruta) {
     gotoxy(x + 1, y + 1);
-    color(14);
-    
+    color(3);
+
     string titulo = "Explorador";
-    int espacios_izq = (ancho - 2 - titulo.length()) / 2;
-    int espacios_der = ancho - 2 - titulo.length() - espacios_izq;
-    
-    cout << string(espacios_izq, ' ') << titulo << string(espacios_der, ' ');
+    string rutaStr = ruta.string();
+    string combinado = titulo + " - " + rutaStr;
+
+    int maxTexto = ancho - 2;
+    combinado = ajustarAlAncho(combinado, maxTexto);
+
+    int espacios_izq = max(0, (maxTexto - (int)combinado.length()) / 2);
+    int espacios_der = maxTexto - (int)combinado.length() - espacios_izq;
+
+    cout << string(espacios_izq, ' ') << combinado << string(espacios_der, ' ');
     color(15);
 }
 
 // Dibuja la ruta actual
 void dibujarRutaActual(const fs::path& ruta, int ancho, int x, int y) {
     gotoxy(x + 1, y + 2);
-    color(7);
+    color(15);
     
     string ruta_str = ruta.string();
     if (ruta_str.length() > ancho - 4) {
@@ -830,7 +708,7 @@ void dibujarRutaActual(const fs::path& ruta, int ancho, int x, int y) {
 // Dibuja linea separadora
 void dibujarSeparador(int ancho, int x, int y) {
     gotoxy(x + 1, y);
-    color(8);
+    color(7);
     for (int i = 1; i < ancho - 1; i++) cout << char(196);
     color(15);
 }
@@ -839,27 +717,29 @@ void dibujarSeparador(int ancho, int x, int y) {
 void dibujarListaArchivos(const vector<EntradaArchivo>& entradas, int seleccionado, 
                           int desplazamiento, int maxLineas, int ancho, int x, int y) {
     int linea = 0;
-    
+
     for (int i = desplazamiento; i < (int)entradas.size() && linea < maxLineas; i++, linea++) {
-        gotoxy(x + 2, y + 3 + linea);
-        
+        gotoxy(x + 2, y + 4 + linea);
+
         int colorEntrada = obtenerColorArchivo(entradas[i].nombre, entradas[i].esDirectorio);
-        
+
         string nombre = entradas[i].nombre;
         if (entradas[i].esDirectorio && nombre != "..") {
             nombre = "[" + nombre + "]";
         }
-        
+
+        int anchoUtil = ancho - 4;
+        nombre = ajustarAlAncho(nombre, anchoUtil);
+
         if (i == seleccionado) {
-            // Resaltar seleccion (fondo blanco/claro)
-            color(240 + colorEntrada);
+            color(12);
             cout << " " << nombre;
-            int espacios = ancho - 4 - nombre.length();
+            int espacios = anchoUtil - 1 - (int)nombre.length();
             if (espacios > 0) cout << string(espacios, ' ');
         } else {
             color(colorEntrada);
-            cout << "  " << nombre;
-            int espacios = ancho - 4 - nombre.length();
+            cout << " " << nombre;
+            int espacios = anchoUtil - 1 - (int)nombre.length();
             if (espacios > 0) cout << string(espacios, ' ');
         }
     }
@@ -869,9 +749,9 @@ void dibujarListaArchivos(const vector<EntradaArchivo>& entradas, int selecciona
 // Dibuja las instrucciones al pie
 void dibujarInstrucciones(int ancho, int x, int y) {
     gotoxy(x + 1, y);
-    color(8);
+    color(15);
     
-    string inst = "tabulador = atras        block mayuscula = salir";
+    string inst = "tabulador = atras        esc = salir";
     int espacios = ancho - 2 - inst.length();
     if (espacios > 0) {
         cout << inst << string(espacios, ' ');
@@ -884,17 +764,20 @@ void dibujarInstrucciones(int ancho, int x, int y) {
 // Dibuja campo de entrada/nombre de archivo
 void dibujarCampoNombre(const string& texto, ModoExplorador modo, int ancho, int x, int y) {
     gotoxy(x + 1, y);
-    color(8);
-    
+    color(15);
+
     string etiqueta = (modo == ModoExplorador::Guardar) ? "Nombre: " : "Buscar: ";
     cout << etiqueta;
-    
-    color(14);
-    cout << texto;
-    
-    int espacios = ancho - 2 - etiqueta.length() - texto.length();
+
+    color(8);
+
+    int anchoUtil = ancho - 2 - (int)etiqueta.length();
+    string textoAjustado = ajustarAlAncho(texto, anchoUtil);
+    cout << textoAjustado;
+
+    int espacios = anchoUtil - (int)textoAjustado.length();
     if (espacios > 0) cout << string(espacios, ' ');
-    
+
     color(15);
 }
 
@@ -942,20 +825,20 @@ string explorarArchivos(ModoExplorador modo) {
         // Calcular dimensiones
         auto [altoExpl, posY] = calcularDimensiones((int)entradas.size());
         int posX = (80 - EXPL_ANCHO) / 2;
-        int maxLineas = altoExpl - 8;  // Espacio para titulo, separadores, etc.
+        int maxLineas = min(EXPL_MAX_FILAS_VISIBLES, altoExpl - 8);
 
         desplazamiento = calcularDesplazamiento(seleccionado, desplazamiento, maxLineas);
 
         // Limpiar y dibujar
         system("cls");
         dibujarCajaExplorador(EXPL_ANCHO, altoExpl, posX, posY);
-        dibujarTituloExplorador(EXPL_ANCHO, posX, posY);
+        dibujarTituloExplorador(EXPL_ANCHO, posX, posY, rutaActual);
         dibujarRutaActual(rutaActual, EXPL_ANCHO, posX, posY + 1);
         dibujarSeparador(EXPL_ANCHO, posX, posY + 3);
         dibujarListaArchivos(entradas, seleccionado, desplazamiento, maxLineas, EXPL_ANCHO, posX, posY);
         dibujarSeparador(EXPL_ANCHO, posX, posY + altoExpl - 4);
         dibujarInstrucciones(EXPL_ANCHO, posX, posY + altoExpl - 3);
-        dibujarCampoNombre(textoBusqueda, modo, EXPL_ANCHO, posX, posY + altoExpl - 1);
+        dibujarCampoNombre(textoBusqueda, modo, EXPL_ANCHO, posX, posY + altoExpl - 2);
 
         // ---- LEER ENTRADA ---- //
         int tecla = getch();
