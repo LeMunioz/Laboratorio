@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <limits>
 
 // frontend.cpp PRIMERO: define color(), gotoxy(), Menu, explorador, etc.
 #include "frontend.cpp"
@@ -60,11 +61,47 @@ int main() {
         color(12);
         cout << "\n  No se cargo ningun archivo. Cerrando compilador.\n";
         color(15);
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cin.get();
         return 1;
     }
 
     // --------------------------------------------------
-    //  PASO 2: Cargar archivo de salida (limpio)
+    //  PASO 3: ANALISIS LEXICO - Limpieza y tokenizacion
+    // --------------------------------------------------
+    // IMPORTANTE: leer TODO el archivo a memoria y cerrarlo ANTES
+    // de pedir el archivo de salida. Si se abriera el mismo archivo
+    // como ofstream primero, se truncaria a 0 bytes y no habria nada
+    // que leer (ese era el bug que vaciaba el archivo fuente).
+    // --------------------------------------------------
+    seccion("PASO 3 - ANALISIS LEXICO");
+
+    color(3);
+    cout << "\n[3.1] Limpiando comentarios y lineas vacias...\n";
+    color(15);
+
+    string linea;
+    bool banderaComentarioMultilinea = false;
+    vector<string> lineasLimpias;
+    vector<string> lineasOriginales;   // guardamos el contenido limpio para el archivo de salida
+
+    while (getline(archivoEntrada, linea)) {
+        string lineaResultado = procesarLinea(linea, banderaComentarioMultilinea);
+        if (lineaTieneContenido(lineaResultado)) {
+            lineasLimpias.push_back(lineaResultado);
+            lineasOriginales.push_back(lineaResultado);
+        }
+    }
+
+    // Cerramos el archivo de ENTRADA antes de pedir la salida
+    archivoEntrada.close();
+
+    color(2);
+    cout << "  Lectura completada. Lineas validas: " << lineasLimpias.size() << "\n";
+    color(15);
+
+    // --------------------------------------------------
+    //  PASO 2: Guardar archivo limpio (DESPUES de leer la entrada)
     // --------------------------------------------------
     seccion("PASO 2 - ELEGIR ARCHIVO DE SALIDA (codigo limpio)");
 
@@ -76,37 +113,15 @@ int main() {
         color(14);
         cout << "\n  Continuando sin guardar archivo limpio...\n";
         color(15);
-    }
-
-    // --------------------------------------------------
-    //  PASO 3: ANALISIS LEXICO - Limpieza y tokenizacion
-    // --------------------------------------------------
-    seccion("PASO 3 - ANALISIS LEXICO");
-
-    color(3);
-    cout << "\n[3.1] Limpiando comentarios y lineas vacias...\n";
-    color(15);
-
-    string linea;
-    bool banderaComentarioMultilinea = false;
-    vector<string> lineasLimpias;
-
-    while (getline(archivoEntrada, linea)) {
-        string lineaResultado = procesarLinea(linea, banderaComentarioMultilinea);
-        if (lineaTieneContenido(lineaResultado)) {
-            if (guardarSalida) {
-                archivoSalida << lineaResultado << "\n";
-            }
-            lineasLimpias.push_back(lineaResultado);
+    } else {
+        for (const string& l : lineasOriginales) {
+            archivoSalida << l << "\n";
         }
+        archivoSalida.close();
+        color(2);
+        cout << "  Archivo limpio guardado correctamente.\n";
+        color(15);
     }
-
-    archivoEntrada.close();
-    if (guardarSalida) archivoSalida.close();
-
-    color(2);
-    cout << "  Limpieza completada. Lineas validas: " << lineasLimpias.size() << "\n";
-    color(15);
 
     // Tokenizar
     color(3);
@@ -136,9 +151,12 @@ int main() {
     }
 
     // Pausar entre fases
+    // cin.ignore() limpia el '\n' residual que deja leerCharOpcional (cin>>)
+    // para que cin.get() no se consuma instantaneamente sin esperar al usuario
     color(14);
-    cout << "\n  [Presione una tecla para continuar con el analisis sintactico...]\n";
+    cout << "\n  [Presione ENTER para continuar con el analisis sintactico...]\n";
     color(15);
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
 
     // --------------------------------------------------
@@ -172,8 +190,9 @@ int main() {
 
     // Pausar entre fases
     color(14);
-    cout << "\n  [Presione una tecla para continuar con el analisis semantico...]\n";
+    cout << "\n  [Presione ENTER para continuar con el analisis semantico...]\n";
     color(15);
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
 
     // --------------------------------------------------
@@ -239,8 +258,9 @@ int main() {
     delete arbol;
 
     color(14);
-    cout << "  [Presione una tecla para salir...]\n";
+    cout << "  [Presione ENTER para salir...]\n";
     color(15);
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
 
     return 0;
