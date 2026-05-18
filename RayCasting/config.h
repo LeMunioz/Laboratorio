@@ -23,8 +23,8 @@ constexpr int ALTO_PANTALLA  = 36;
 constexpr float FOV = PI / 3.0f;
 
 // -- Velocidades de movimiento y rotacion --
-constexpr float VEL_MOVIMIENTO = 0.08f;
-constexpr float VEL_ROTACION   = 0.05f;
+constexpr float VEL_MOVIMIENTO = 0.2f;
+constexpr float VEL_ROTACION   = 0.1f;
 
 // -- Distancia maxima a la que el motor detecta paredes --
 constexpr float DIST_MAX = 20.0f;
@@ -33,8 +33,8 @@ constexpr float DIST_MAX = 20.0f;
 // Las paredes cambian de caracter segun que tan lejos esten
 constexpr float SOMBRA_MUY_CERCA = 2.5f;
 constexpr float SOMBRA_CERCA     = 5.0f;
-constexpr float SOMBRA_MEDIA     = 8.0f;
-constexpr float SOMBRA_LEJOS     = 12.0f;
+constexpr float SOMBRA_MEDIA     = 12.0f;
+constexpr float SOMBRA_LEJOS     = 18.0f;
 
 // -- Colores del cielo y el piso (indices de la libreria frontend) --
 constexpr int COLOR_CIELO = 1;   // Azul Rey (oscuro)

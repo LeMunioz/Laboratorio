@@ -1,0 +1,118 @@
+# ==============================================================
+#  mapas.txt  -  Archivo de definicion de mapas del motor
+# ==============================================================
+#
+#  FORMATO DE UN BLOQUE DE MAPA:
+#  --------------------------------
+#  [MAPA]
+#  nombre=Nombre del cuarto
+#  spawn=X Y ANGULO
+#  ANCHO ALTO
+#  <filas del grid>
+#  [FIN]
+#
+#  REGLAS DEL GRID:
+#    - Cada caracter es una celda del mapa (digitos 0-9)
+#    - 0 = celda vacia (el jugador puede caminar)
+#    - 1-9 = pared con el tipo definido en config_paredes.cpp
+#    - El ancho y alto deben coincidir exactamente con el grid
+#    - Las lineas que empiezan con '#' son comentarios (ignoradas)
+#
+#  TABLA DE TIPOS DE PARED (definida en config_paredes.cpp):
+#    1 = Piedra gris         (altura normal)
+#    2 = Muro azul           (altura normal)
+#    3 = Columna alta verde  (muy alta, estrecha)
+#    4 = Ladrillo rojo       (altura normal)
+#    5 = Barda baja          (apenas media pared)
+#    6 = Madera              (altura normal)
+#    7 = Torre alta celeste  (extremadamente alta)
+#    8 = Muro violeta        (altura normal)
+#    9 = Placa de metal      (altura normal)
+#
+#  ANGULO DE SPAWN en radianes:
+#    0.0  = mirando al este (derecha)
+#    1.57 = mirando al sur  (abajo)
+#    3.14 = mirando al oeste (izquierda)
+#    4.71 = mirando al norte (arriba)
+#
+# ==============================================================
+
+
+# ==============================================================
+#  MAPA 1 - Pasillo de entrada
+#  Cuarto rectangular simple con diferentes tipos de pared
+#  para introducir al jugador a los controles.
+# ==============================================================
+[MAPA]
+nombre=Pasillo de Entrada
+spawn=2.5 2.5 0.0
+20 10
+11111111111111111111
+10000000000000000001
+10000000000000000001
+10000050500000000001
+10000000000000000001
+10000050500000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+11111111111111111111
+[FIN]
+
+
+# ==============================================================
+#  MAPA 2 - Sala de columnas
+#  Cuarto amplio con columnas altas y barda baja interior.
+#  Muestra el contraste de alturas entre distintos tipos.
+# ==============================================================
+[MAPA]
+nombre=Sala de Columnas
+spawn=3.5 3.5 0.0
+24 14
+222222222222222222222222
+200000000000000000000002
+200000000000000000000002
+200000300000000300000002
+200000000000000000000002
+200055555555555555500002
+200050000000000050000002
+200050000000000050000002
+200055555555555555500002
+200000000000000000000002
+200000300000000300000002
+200000000000000000000002
+200000000000000000000002
+222222222222222222222222
+[FIN]
+
+
+# ==============================================================
+#  MAPA 3 - Laberinto de cuartos
+#  Varios cuartos interconectados con distintos materiales
+#  de pared. Explorar para descubrir los colores y tramas.
+# ==============================================================
+[MAPA]
+nombre=Laberinto de Cuartos
+spawn=2.5 2.5 0.0
+28 20
+4444444444444888888888444444
+4000000000004800000008000004
+4000000000000000000008000004
+4000000000004800000008000004
+4444444444444888888888000004
+4000000000000000000000000004
+4000444044004000000000000004
+4000000000004000666666666664
+4000000000004000600000000064
+4000444044004000600099996064
+4000000000004000600090906064
+4000000000004000600099906064
+4000444044004000600000006064
+4000000000004000666666666664
+4000000000004000000000000004
+4444440000444000000000000004
+4000000000000000000000000004
+4000000000000000000000000004
+4000000000000000000000000004
+4444444444444444444444444444
+[FIN]
