@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeRiver - Monitoreo de Nivel de Agua</title>
+    <style>
+        :root {
+            --primary: #2b6cb0;
+            --success: #48bb78;
+            --danger: #e53e3e;
+            --background: #f7fafc;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            margin: 0;
+            padding: 20px;
+            color: #2d3748;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 10px;
+        }
+
+        h1 { margin: 0; color: var(--primary); }
+        p.subtitle { margin: 5px 0 0 0; color: #718096; font-size: 0.95rem; }
+
+        /* Banner de Alerta Crítica Dinámica */
+        #banner-alerta {
+            display: none;
+            background-color: var(--danger);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            animation: parpadeo 1.5s infinite;
+        }
+
+        @keyframes parpadeo {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Tarjetas de información */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: center;
+            border-top: 4px solid var(--primary);
+        }
+
+        .card h3 { margin: 0 0 10px 0; color: #4a5568; font-size: 1.1rem; }
+        .value { font-size: 2rem; font-weight: bold; color: var(--primary); }
+
+        /* Representación visual del nivel (Barra de progreso) */
+        .progress-container {
+            background-color: #edf2f7;
+            border-radius: 20px;
+            height: 30px;
+            width: 100%;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            background-color: var(--success);
+            height: 100%;
+            width: 0%;
+            transition: width 0.8s ease-in-out, background-color 0.5s ease;
+        }
+
+        footer {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>SafeRiver Tepatitlán</h1>
+        <p class="subtitle">Sistema Distribuido de Monitoreo de Nivel de Agua en Tiempo Real</p>
+    </header>
+
+    <div id="banner-alerta">
+        ⚠️ ¡ALERTA CRÍTICA! EL NIVEL DEL RÍO HA EXCEDIDO EL LÍMITE DE SEGURIDAD ⚠️
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Nivel del Agua</h3>
+            <div id="nivel-texto" class="value">0.0%</div>
+            <div class="progress-container">
+                <div id="barra-progreso" class="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>ID del Nodo Estación</h3>
+            <div id="nodo-texto" class="value">--</div>
+        </div>
+
+        <div class="card">
+            <h3>Última Actualización</h3>
+            <div id="hora-texto" class="value" style="font-size: 1.5rem; margin-top: 8px;">--</div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 Ingeniería en Computación - CUAltos UDG</p>
+    </footer>
+</div>
+
+<script>
+    // Función para consultar al servidor back-end
+    async function actualizarMonitoreo() {
+        try {
+            // Se hace la petición a la API de Node.js
+            const respuesta = await fetch('/api/status');
+            const datos = await respuesta.json();
+            const actual = datos.actual;
+
+            // 1. Actualizar textos en la interfaz
+            document.getElementById('nodo-texto').innerText = actual.nodo_id;
+            document.getElementById('hora-texto').innerText = actual.ultima_actualizacion;
+            document.getElementById('nivel-texto').innerText = actual.nivel_agua + '%';
+
+            // 2. Actualizar la barra de progreso visual
+            const barra = document.getElementById('barra-progreso');
+            barra.style.width = actual.nivel_agua + '%';
+
+            // 3. Cambiar colores de la barra según la criticidad
+            if (actual.nivel_agua > 85) {
+                barra.style.backgroundColor = '#e53e3e'; // Rojo
+            } else if (actual.nivel_agua > 60) {
+                barra.style.backgroundColor = '#dd6b20'; // Naranja
+            } else {
+                barra.style.backgroundColor = '#48bb78'; // Verde
+            }
+
+            // 4. Controlar el despliegue del Banner de Emergencia
+            const banner = document.getElementById('banner-alerta');
+            if (actual.alerta_critica === true) {
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error("Error al conectar con la API de SafeRiver:", error);
+        }
+    }
+
+    // Ejecutar la función inmediatamente al cargar la página
+    actualizarMonitoreo();
+
+    // Configurar el ciclo de actualización automática cada 5 segundos (5000 ms)
+    setInterval(actualizarMonitoreo, 5000);
+</script>
+</body>
+</html>
