@@ -11,20 +11,37 @@
       1. Edita el array en config_paredes.cpp
       2. Usa el indice correspondiente (1-9) en el archivo mapas.txt
 
-    REFERENCIA DE COLORES de la libreria frontend:
-      1  = Azul Rey      2  = Verde         3  = Azul Cyan
-      4  = Rojo          5  = Violeta       6  = Amarillo Ocre
-      7  = Gris Claro    8  = Gris          9  = Azul
-      10 = Verde Pasto   11 = Celeste       12 = Rojo Claro
-      13 = Morado        14 = Crema         15 = Blanco
+    REFERENCIA DE COLORES de la libreria frontend ANSI 256:
+    Rango 0-15: Colores basicos
+    Rango 16-231: Colores extendidos (6x6x6 RGB)
+    Rango 232-255: Escala de grises
 ================================================================
 */
 
-constexpr int NUM_TIPOS_PARED = 10;
+constexpr int NUM_TIPOS_PARED = 8;
+constexpr int NUM_PAREDES_ESPECIALES = 2;
+constexpr int NUM_TIPOS_CIELO = 3;
+constexpr int NUM_TIPOS_SUELO = 2;
 
 /*
-    Tabla global indexada por el digito del mapa.
+    Tabla global de tipos de pared normales (indices 0-7).
     Indice 0 = espacio vacio (no se utiliza directamente).
-    Indices 1-9 corresponden a los digitos '1'-'9' del archivo.
+    Indices 1-7 corresponden a los digitos '1'-'7' del archivo.
 */
 extern const std::array<TipoPared, NUM_TIPOS_PARED> TIPOS_PARED;
+
+/*
+    Tabla de paredes especiales (arboles, postes, etc).
+    Se definen fuera de la tabla normal para no ocupar espacio en todos los mapas.
+*/
+extern const std::array<ParedEspecial, NUM_PAREDES_ESPECIALES> PAREDES_ESPECIALES;
+
+/*
+    Tabla de tipos de cielo disponibles.
+*/
+extern const std::array<TipoCielo, NUM_TIPOS_CIELO> TIPOS_CIELO;
+
+/*
+    Tabla de tipos de suelo disponibles.
+*/
+extern const std::array<TipoSuelo, NUM_TIPOS_SUELO> TIPOS_SUELO;

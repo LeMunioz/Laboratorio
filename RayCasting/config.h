@@ -36,14 +36,11 @@ constexpr float SOMBRA_CERCA     = 5.0f;
 constexpr float SOMBRA_MEDIA     = 12.0f;
 constexpr float SOMBRA_LEJOS     = 18.0f;
 
-// -- Colores del cielo y el piso (indices de la libreria frontend) --
-constexpr int COLOR_CIELO = 1;   // Azul Rey (oscuro)
-constexpr int COLOR_PISO  = 8;   // Gris
-
-// -- Caracteres del cielo y el piso --
-constexpr char CHAR_CIELO = ' ';
-constexpr char CHAR_PISO  = '.';
-
 // -- Dimensiones del minimapa superpuesto en pantalla --
 constexpr int ANCHO_MINI = 22;
 constexpr int ALTO_MINI  = 10;
+
+// -- Configuracion de multihilo --
+// El renderer ahora divide el trabajo en 3 hilos principales
+constexpr int NUM_HILOS_RAYCASTER = 4;  // Hilos para raycasting (pueden ser multiplos)
+constexpr bool USAR_MULTIHILO = true;   // Activar/desactivar paralelismo

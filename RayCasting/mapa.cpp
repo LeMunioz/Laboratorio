@@ -4,11 +4,11 @@
 
 /*
 ================================================================
-    mapa.cpp - Implementacion del modulo de mapas
+    mapa.cpp - Implementacion del modulo de mapas (ACTUALIZADO)
 
-    El parser lee el archivo linea por linea buscando bloques
-    [MAPA]...[FIN]. Dentro de cada bloque procesa metadatos
-    (nombre=, spawn=) y luego las filas del grid de digitos.
+    El parser ahora lee campos adicionales:
+      - cielo: ID del tipo de cielo (0-2)
+      - suelo: ID del tipo de suelo (0-1)
 
     Reglas del parser:
       - Las lineas que comienzan con '#' son comentarios
@@ -37,6 +37,8 @@ static std::vector<Celda> parsearFila(const std::string& linea) {
     Lee el archivo completo y construye la lista de mapas.
     Usa una maquina de estados simple: fuera de mapa, dentro de
     mapa (leyendo metadatos), dentro de grid (leyendo filas).
+    
+    NUEVO: Lee campos de cielo y suelo con valores por defecto.
 */
 std::vector<Mapa> cargarMapas(const std::string& ruta) {
     std::vector<Mapa> mapas;
@@ -59,6 +61,8 @@ std::vector<Mapa> cargarMapas(const std::string& ruta) {
 
         if (linea == "[MAPA]") {
             actual      = Mapa{};
+            actual.idCielo = 0;  // Default cielo
+            actual.idSuelo = 0;  // Default suelo
             enMapa      = true;
             enGrid      = false;
             filasLeidas = 0;
@@ -84,6 +88,20 @@ std::vector<Mapa> cargarMapas(const std::string& ruta) {
         if (linea.rfind("spawn=", 0) == 0) {
             std::istringstream ss(linea.substr(6));
             ss >> actual.spawnX >> actual.spawnY >> actual.spawnAngulo;
+            continue;
+        }
+
+        // NUEVO: Leer tipo de cielo
+        if (linea.rfind("cielo=", 0) == 0) {
+            std::istringstream ss(linea.substr(6));
+            ss >> actual.idCielo;
+            continue;
+        }
+
+        // NUEVO: Leer tipo de suelo
+        if (linea.rfind("suelo=", 0) == 0) {
+            std::istringstream ss(linea.substr(6));
+            ss >> actual.idSuelo;
             continue;
         }
 
