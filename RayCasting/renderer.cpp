@@ -7,242 +7,219 @@
 #include <iostream>
 #include <algorithm>
 #include <windows.h>
-#include <thread>
-#include <mutex>
-#include <queue>
 
 /*
-    Declaraciones externas de las funciones de la libreria frontend.
-    Sus definiciones son enlazadas desde main.cpp al incluir frontend.cpp.
+    Declaraciones de la libreria frontend (enlazadas desde main.cpp).
 */
 extern void gotoxy(int x, int y);
 extern void color(int c);
 
 /*
 ================================================================
-    renderer.cpp - Implementacion del renderizador por raycasting
+    renderer.cpp - Renderizador 3D por raycasting (algoritmo DDA)
 
-    ARQUITECTURA MULTIHILO:
-    -----------------------
-    El sistema usa 3 hilos principales:
-    
-    Hilo 1 (RAYCASTER): 
-      - Lanza rayos para cada columna de pantalla
-      - Calcula distancias y tipos de pared
-      - Genera RayoResultado para cada columna
-      - Llena cola de columnas completadas
-    
-    Hilo 2 (DIBUJADOR):
-      - Lee resultados del raycaster
-      - Dibuja cielo, pared y suelo en el buffer
-      - Aplica seleccion de color y trama segun distancia
-      - Sincroniza con el raycaster mediante cola thread-safe
-    
-    Hilo 3 (MINIMAPA):
-      - Actualmente en standby (puede hacer futuras funciones)
-      - Dibuja el minimapa superpuesto sobre el buffer
-      - Se sincroniza con el dibujador antes de volcar
-    
-    ALGORITMO DDA:
-    -----------------------------------------------
-    Para cada columna de la pantalla se lanza un rayo desde la
-    posicion del jugador. El DDA avanza celda por celda del grid
-    eligiendo siempre el eje (X o Y) cuya siguiente interseccion
-    con la cuadricula este mas cerca.
+    PIPELINE DE RENDERIZADO POR COLUMNA:
+    ─────────────────────────────────────
+    Para cada columna X (0..ANCHO_PANTALLA-1):
 
-    La distancia perpendicular elimina el efecto "ojo de pez".
+      1. Lanzar rayo con DDA.
+         El DDA avanza celda a celda eligiendo siempre el eje
+         cuya proxima interseccion con el grid este mas cerca.
+         Si encuentra un ARCO (sinColision=true): lo registra
+         y CONTINUA. Si encuentra pared solida: se detiene.
 
-    SISTEMA DE BUFFER:
-    ------------------
-    Se mantiene un buffer 2D principal que se llena por los hilos
-    de raycasting y dibujado, y se vuelca fila por fila al final.
+      2. Paso "Fondo": rellenar la columna completa con cielo/piso.
 
-    TRAMAS PERSONALIZADAS:
-    ----------------------
-    Cada tipo de pared ahora puede tener una trama (string) que
-    define como se ve a diferentes distancias. El sistema selecciona
-    el caracter segun la distancia de forma inteligente.
+      3. Paso "Pared": si golpeo una pared solida, dibujar encima:
+           NORMAL -> banda vertical centrada en el horizonte
+           ARBOL  -> tronco (banda baja) + follaje (banda alta)
 
-    CIELO Y SUELO:
-    ---------------
-    El cielo y suelo ahora son configurables por mapa. Los patrones
-    se dibujan solo en los extremos de la pantalla para crear
-    profundidad visual (menos patron a mayor distancia).
+      4. Paso "Overlay de arco": si habia un arco en la trayectoria,
+         dibujar el marco superior encima de lo que ya hay.
+
+    SISTEMA DE COLOR DE 4 ESTADOS:
+    ─────────────────────────────
+      dist < DIST_CERCA  : colorCerca
+      dist < DIST_LEJOS  : colorLejos
+      dist >= DIST_LEJOS : colorMuyLejos  (normalmente gris 8)
+      !ladoX (sombra)    : colorSombra  (sustituye a todo lo anterior)
+
+    SISTEMA DE CARACTER DE 2 ESTADOS:
+    ──────────────────────────────────
+      dist < DIST_CHAR   : tramaCerca
+      dist >= DIST_CHAR  : tramaLejos
 ================================================================
 */
 
-// Buffer de pantalla: se llena cada frame antes de volcarse
+// Buffer interno de pantalla; se llena cada frame y luego se vuelca
 static CeldaPantalla bufActual[ALTO_PANTALLA][ANCHO_PANTALLA];
 
-// Variables de sincronizacion entre hilos
-static std::mutex mutexBuffer;
-static std::mutex mutexRayos;
-static std::vector<ColumnaDatos> colasRayos[2];  // Double buffering para columnas
-static int filaColasActual = 0;
-
-// ----------------------------------------------------------------
-// FUNCIONES AUXILIARES DEL BUFFER
-// ----------------------------------------------------------------
+// ────────────────────────────────────────────────────────────────
+// FUNCIONES DEL BUFFER
+// ────────────────────────────────────────────────────────────────
 
 /*
-    Escribe un caracter y su color en la celda (x, y) del buffer.
-    Las coordenadas fuera del rango se ignoran silenciosamente.
-    Thread-safe: usa mutex para acceso concurrente.
+    Escribe un caracter y color en la celda (x, y) del buffer.
+    Coordenadas fuera de rango se ignoran silenciosamente.
 */
 static void setCelda(int x, int y, char ch, int col) {
     if (y < 0 || y >= ALTO_PANTALLA || x < 0 || x >= ANCHO_PANTALLA) return;
-    std::lock_guard<std::mutex> lock(mutexBuffer);
     bufActual[y][x] = { ch, col };
 }
 
 /*
-    Version sin mutex para escrituras secuenciales conocidas
-    (uso interno en funciones que ya tienen sincronizacion).
-*/
-static void setCeldaUnsafe(int x, int y, char ch, int col) {
-    if (y < 0 || y >= ALTO_PANTALLA || x < 0 || x >= ANCHO_PANTALLA) return;
-    bufActual[y][x] = { ch, col };
-}
-
-/*
-    volvtea el buffer completo a la consola.
-    Optimizacion: una sola llamada a gotoxy() por fila y las llamadas
-    a color() se agrupan por bloques consecutivos del mismo color.
-    Thread-safe: adquiere lock antes de leer.
+    Vuelca el buffer a la consola.
+    Optimizacion: una llamada a gotoxy() por fila y las llamadas
+    a color() se agrupan por bloques de igual color consecutivos.
 */
 static void volcarBuffer() {
-    std::lock_guard<std::mutex> lock(mutexBuffer);
-    
     for (int fila = 0; fila < ALTO_PANTALLA; fila++) {
         gotoxy(0, fila);
         int colorActual = -1;
 
         for (int col = 0; col < ANCHO_PANTALLA; col++) {
             const CeldaPantalla& cp = bufActual[fila][col];
-
             if (cp.col != colorActual) {
                 color(cp.col);
                 colorActual = cp.col;
             }
-
             std::cout.put(cp.ch);
         }
     }
     std::cout.flush();
 }
 
-// ----------------------------------------------------------------
-// FUNCIONES DE SELECCION DE APARIENCIA
-// ----------------------------------------------------------------
+// ────────────────────────────────────────────────────────────────
+// SELECCION DE COLOR Y CARACTER
+// ────────────────────────────────────────────────────────────────
 
 /*
-    Retorna el caracter apropiado segun la distancia y la trama.
-    Elige inteligentemente del string de trama basado en distancia.
+    Selecciona el caracter de la pared segun la distancia.
+    Cerca del jugador se usa tramaCerca, lejos tramaLejos.
 */
-char seleccionarCaracterTramaDistancia(float dist, const std::string& trama) {
-    if (trama.empty()) return ' ';
-    
-    // Seleccionar indice basado en distancia
-    int idx = 0;
-    if (dist < SOMBRA_MUY_CERCA) idx = 0;
-    else if (dist < SOMBRA_CERCA) idx = 1 % trama.length();
-    else if (dist < SOMBRA_MEDIA) idx = (2 % trama.length());
-    else if (dist < SOMBRA_LEJOS) idx = (3 % trama.length());
-    else idx = (4 % trama.length());
-    
-    // Asegurar que el indice es valido
-    idx = idx % trama.length();
-    return trama[idx];
+static char seleccionarCaracter(float dist, const TipoPared& tp) {
+    return (dist < DIST_CHAR) ? tp.tramaCerca : tp.tramaLejos;
 }
 
 /*
-    Retorna el color de la pared considerando:
-    - Distancia al jugador (cerca vs lejos)
-    - Lado impactado: las caras horizontales se muestran
-      un tono mas oscuro para simular iluminacion direccional
+    Selecciona el color de la pared segun distancia y lado impactado.
+    Las caras horizontales (sombra) usan siempre colorSombra.
 */
-int seleccionarColorMuro(float dist, int tipoPared, bool ladoX) {
-    if (tipoPared >= (int)TIPOS_PARED.size()) return 8;
-    
+static int seleccionarColor(float dist, int tipoPared, bool ladoX) {
     const TipoPared& tp = TIPOS_PARED[tipoPared];
-    int col = (dist < SOMBRA_CERCA) ? tp.colorCerca : tp.colorLejos;
 
-    // Las caras horizontales (ladoX == false) son ligeramente mas oscuras
-    if (!ladoX && col > 1) col--;
+    if (!ladoX) return tp.colorSombra;
 
-    return col;
+    if (dist < DIST_CERCA) return tp.colorCerca;
+    if (dist < DIST_LEJOS) return tp.colorLejos;
+    return tp.colorMuyLejos;
 }
 
-// ----------------------------------------------------------------
-// FUNCIONES DE CIELO Y SUELO
-// ----------------------------------------------------------------
+// ────────────────────────────────────────────────────────────────
+// RENDERIZADO DE TIPOS ESPECIALES
+// ────────────────────────────────────────────────────────────────
 
 /*
-    Dibuja un caracter de cielo, aplicando patron solo en los extremos.
-    Los patrones se desvanecen hacia el centro para crear efecto de profundidad.
+    Dibuja un arbol en la columna X.
+
+    El arbol se compone de dos bandas sobre el fondo ya dibujado:
+      - FOLLAJE: banda alta, mas grande, color tp.colorLejos, char tp.tramaLejos
+      - TRONCO:  banda baja anclada al suelo, delgada, color tp.colorCerca, char tp.tramaCerca
+
+    La separacion entre ambas bandas deja ver el fondo (cielo),
+    produciendo el efecto de transparencia del follaje.
+
+    Disposicion en pantalla (Y crece hacia abajo):
+      suelo = mitad + altBase/2
+      troncFin = suelo
+      troncIni = suelo - altBase * FRAC_TRONCO
+      follFin  = troncIni + altBase * FRAC_FOLLAJE_OVERLAP  (leve solapamiento)
+      follIni  = follFin - altBase * tp.altura
 */
-void dibujarCielo(int x, int y, int idCielo, int distanciaPantalla) {
-    if (idCielo < 0 || idCielo >= (int)TIPOS_CIELO.size()) {
-        setCelda(x, y, ' ', 8);
-        return;
-    }
-    
-    const TipoCielo& c = TIPOS_CIELO[idCielo];
-    
-    // Dibujar patron solo si estamos cerca de los bordes
-    char ch = ' ';
-    if (!c.trama.empty() && distanciaPantalla > 15) {  // Solo en los extremos
-        int idx = (x + y) % c.trama.length();
-        ch = c.trama[idx];
-    }
-    
-    setCelda(x, y, ch, c.color);
+static void renderizarColumnaArbol(int x, float dist, int tipoPared, bool ladoX) {
+    const TipoPared& tp    = TIPOS_PARED[tipoPared];
+    const int        mitad = ALTO_PANTALLA / 2;
+
+    float altBase = (float)ALTO_PANTALLA / dist;
+
+    // -- Tronco --
+    int troncFin = std::min((int)(mitad + altBase * 0.5f), ALTO_PANTALLA - 1);
+    int troncIni = std::max((int)(troncFin - altBase * FRAC_TRONCO), 0);
+
+    // Color del tronco: respeta sombra y distancia
+    int colorTronco = !ladoX
+        ? tp.colorSombra
+        : (dist < DIST_CERCA ? tp.colorCerca : tp.colorMuyLejos);
+
+    char charTronco = tp.tramaCerca;   // Tronco siempre usa tramaCerca ('|')
+
+    // -- Follaje: se apoya sobre la cima del tronco --
+    float altFollaje = altBase * tp.altura;
+    int follFin = std::min((int)(troncIni + altBase * FRAC_FOLLAJE_OVERLAP), ALTO_PANTALLA - 1);
+    int follIni = std::max((int)(follFin - altFollaje), 0);
+
+    int  colorFollaje = tp.colorLejos;   // Follaje siempre usa colorLejos (verde)
+    char charFollaje  = tp.tramaLejos;   // Follaje usa tramaLejos ('#')
+
+    // Dibujar follaje primero (puede quedar debajo del tronco en borde)
+    for (int y = follIni; y <= follFin; y++)
+        setCelda(x, y, charFollaje, colorFollaje);
+
+    // Dibujar tronco encima
+    for (int y = troncIni; y <= troncFin; y++)
+        setCelda(x, y, charTronco, colorTronco);
 }
 
 /*
-    Dibuja un caracter de suelo, aplicando patron solo en los extremos.
-    Los patrones se desvanecen hacia el horizonte para crear profundidad.
+    Dibuja el marco superior de un arco como overlay en la columna X.
+
+    Solo se pinta la fraccion FRACCION_ARCO del alto total que tendria
+    la pared si fuera solida. La parte inferior queda como estaba en
+    el buffer (fondo o pared detras), creando el hueco del arco.
+
+    Esto se llama DESPUES de haber pintado el fondo y la pared
+    solida detras del arco, por lo que la escena se ve a traves.
 */
-void dibujarSuelo(int x, int y, int idSuelo, int distanciaPantalla) {
-    if (idSuelo < 0 || idSuelo >= (int)TIPOS_SUELO.size()) {
-        setCelda(x, y, '.', 8);
-        return;
-    }
-    
-    const TipoSuelo& s = TIPOS_SUELO[idSuelo];
-    
-    // Dibujar patron solo si estamos cerca del borde inferior
-    char ch = ' ';
-    if (!s.trama.empty() && distanciaPantalla > 10) {  // Solo en los extremos inferiores
-        int idx = (x + y) % s.trama.length();
-        ch = s.trama[idx];
-    }
-    
-    setCelda(x, y, ch, s.color);
+static void renderizarColumnaArco(int x, float dist, int tipoPared, bool ladoX) {
+    const TipoPared& tp    = TIPOS_PARED[tipoPared];
+    const int        mitad = ALTO_PANTALLA / 2;
+
+    float altTotal = ((float)ALTO_PANTALLA / dist) * tp.altura;
+
+    int arcoIni = std::max(0, (int)(mitad - altTotal * 0.5f));
+    int arcoFin = std::min(ALTO_PANTALLA - 1,
+                           (int)(arcoIni + altTotal * FRACCION_ARCO));
+
+    char charArco  = seleccionarCaracter(dist, tp);
+    int  colorArco = seleccionarColor(dist, tipoPared, ladoX);
+
+    for (int y = arcoIni; y <= arcoFin; y++)
+        setCelda(x, y, charArco, colorArco);
 }
 
-// ----------------------------------------------------------------
+// ────────────────────────────────────────────────────────────────
 // MINIMAPA EN BUFFER
-// ----------------------------------------------------------------
+// ────────────────────────────────────────────────────────────────
 
 /*
-    Escribe el minimapa 2D directamente en el buffer de pantalla,
-    superpuesto en la esquina superior derecha de la escena.
-    Al estar integrado en el buffer no produce parpadeo.  <---- NECESITA ARREGLO :(
-    Esta funcion se ejecuta en el hilo del minimapa (Hilo 3).
+    Escribe el minimapa 2D en la esquina superior derecha del buffer.
+    Cada celda del mapa se representa con un caracter segun su tipo:
+      '@' = jugador
+      'T' = arbol
+      ':' = arco (transitable)
+      '#' = pared normal (color del tipo)
+      ' ' = espacio vacio
 */
 static void dibujarMiniMapaEnBuffer(const Jugador& jugador, const Mapa& mapa) {
-    // Posicion del minimapa en coordenadas de pantalla
     const int posX = ANCHO_PANTALLA - ANCHO_MINI - 1;
     const int posY = 0;
 
-    // Calcular el desplazamiento del mapa para centrar en el jugador
+    // Centrar la ventana del minimapa en el jugador
     int camX = (int)jugador.x - ANCHO_MINI / 2;
     int camY = (int)jugador.y - ALTO_MINI  / 2;
     camX = std::max(0, std::min(camX, mapa.ancho - ANCHO_MINI));
     camY = std::max(0, std::min(camY, mapa.alto  - ALTO_MINI));
 
-    // Posicion del jugador relativa a la ventana del minimapa
     int jMapX = (int)jugador.x - camX;
     int jMapY = (int)jugador.y - camY;
 
@@ -254,21 +231,22 @@ static void dibujarMiniMapaEnBuffer(const Jugador& jugador, const Mapa& mapa) {
             int  cl;
 
             if (mx == jMapX && my == jMapY) {
-                // Marcador del jugador
-                ch = '@';
-                cl = 14;   // Crema / amarillo
-            } else if (tipo > 0) {
-                // Celda con pared
-                ch = '#';
-                if (tipo < (int)TIPOS_PARED.size()) {
-                    cl = TIPOS_PARED[tipo].colorCerca;
-                } else {
-                    cl = 8;
-                }
+                ch = '@'; cl = 14;   // Jugador: crema
+            } else if (tipo <= 0) {
+                ch = ' '; cl = 8;   // Vacio
             } else {
-                // Celda vacia
-                ch = ' ';
-                cl = 8;
+                const TipoPared& tp = TIPOS_PARED[tipo];
+                switch (tp.comportamiento) {
+                    case ComportamientoPared::ARBOL:
+                        ch = 'T'; cl = tp.colorLejos;    // Verde del follaje
+                        break;
+                    case ComportamientoPared::ARCO:
+                        ch = ':'; cl = tp.colorCerca;    // Marco, transitable
+                        break;
+                    default:
+                        ch = '#'; cl = tp.colorCerca;
+                        break;
+                }
             }
 
             setCelda(posX + mx, posY + my, ch, cl);
@@ -276,12 +254,12 @@ static void dibujarMiniMapaEnBuffer(const Jugador& jugador, const Mapa& mapa) {
     }
 }
 
-// ----------------------------------------------------------------
-// FUNCIONES PUBLICAS DEL RENDERER
-// ----------------------------------------------------------------
+// ────────────────────────────────────────────────────────────────
+// FUNCIONES PUBLICAS
+// ────────────────────────────────────────────────────────────────
 
 /*
-    Prepara la consola para el modo de juego:
+    Inicializa la pantalla para el modo de juego:
     oculta el cursor y limpia el buffer con espacio en blanco.
 */
 void inicializarPantalla() {
@@ -289,7 +267,6 @@ void inicializarPantalla() {
     CONSOLE_CURSOR_INFO ci = { 1, FALSE };
     SetConsoleCursorInfo(hCon, &ci);
 
-    std::lock_guard<std::mutex> lock(mutexBuffer);
     for (int f = 0; f < ALTO_PANTALLA; f++)
         for (int c = 0; c < ANCHO_PANTALLA; c++)
             bufActual[f][c] = { ' ', 8 };
@@ -299,49 +276,46 @@ void inicializarPantalla() {
 
 /*
     Implementacion del algoritmo DDA.
-    Calcula la distancia perpendicular a la primera pared que
-    intersecta el rayo lanzado en el angulo dado.
+
+    Avanza celda a celda por el grid eligiendo siempre el eje
+    (X o Y) cuya proxima interseccion con la cuadricula este mas cerca.
+
+    Comportamiento ante distintos tipos de celda:
+      tipo == 0              -> ignorar, continuar
+      sinColision == true    -> registrar como arco y continuar
+      sinColision == false   -> registrar como pared solida y detener
 */
 RayoResultado lanzarRayo(const Jugador& jugador, const Mapa& mapa, float angulo) {
-    RayoResultado res = { DIST_MAX, 0, false, false };
+    RayoResultado res = {};
+    res.distancia     = DIST_MAX;
+    res.golpeo        = false;
+    res.distanciaArco = DIST_MAX;
+    res.hayArco       = false;
 
     float rayDX = std::cos(angulo);
     float rayDY = std::sin(angulo);
 
-    // Distancia que recorre el rayo entre dos intersecciones de eje
     float deltaDX = (rayDX == 0.0f) ? 1e30f : std::abs(1.0f / rayDX);
     float deltaDY = (rayDY == 0.0f) ? 1e30f : std::abs(1.0f / rayDY);
 
-    // Celda del mapa donde comienza el rayo
     int mapX = (int)jugador.x;
     int mapY = (int)jugador.y;
 
     int   stepX, stepY;
     float sideDistX, sideDistY;
 
-    // Inicializar el paso y la distancia lateral hasta la primera interseccion
-    if (rayDX < 0) {
-        stepX     = -1;
-        sideDistX = (jugador.x - mapX) * deltaDX;
-    } else {
-        stepX     = 1;
-        sideDistX = (mapX + 1.0f - jugador.x) * deltaDX;
-    }
+    if (rayDX < 0) { stepX = -1; sideDistX = (jugador.x - mapX) * deltaDX; }
+    else            { stepX =  1; sideDistX = (mapX + 1.0f - jugador.x) * deltaDX; }
 
-    if (rayDY < 0) {
-        stepY     = -1;
-        sideDistY = (jugador.y - mapY) * deltaDY;
-    } else {
-        stepY     = 1;
-        sideDistY = (mapY + 1.0f - jugador.y) * deltaDY;
-    }
+    if (rayDY < 0) { stepY = -1; sideDistY = (jugador.y - mapY) * deltaDY; }
+    else            { stepY =  1; sideDistY = (mapY + 1.0f - jugador.y) * deltaDY; }
 
-    // Avanzar celda por celda hasta encontrar una pared o agotar la distancia maxima
-    bool ladoX   = false;
+    bool ladoX    = false;
     int  maxPasos = (int)(DIST_MAX * 2);
 
     for (int i = 0; i < maxPasos; i++) {
-        // Avanzar por el eje cuya proxima interseccion este mas cerca
+
+        // Avanzar por el eje con interseccion mas proxima
         if (sideDistX < sideDistY) {
             sideDistX += deltaDX;
             mapX      += stepX;
@@ -353,250 +327,130 @@ RayoResultado lanzarRayo(const Jugador& jugador, const Mapa& mapa, float angulo)
         }
 
         int tipo = obtenerTipoCelda(mapa, mapX, mapY);
+        if (tipo <= 0) continue;
 
-        if (tipo > 0) {
-            res.golpeo    = true;
-            res.tipoPared = tipo;
-            res.ladoX     = ladoX;
+        // Distancia perpendicular (elimina efecto ojo de pez)
+        float perpDist = ladoX ? (sideDistX - deltaDX) : (sideDistY - deltaDY);
+        if (perpDist < 0.001f) perpDist = 0.001f;
 
-            // Distancia perpendicular: evita el efecto ojo de pez
-            res.distancia = ladoX
-                ? (sideDistX - deltaDX)
-                : (sideDistY - deltaDY);
+        const TipoPared& tp = TIPOS_PARED[tipo];
 
-            // Evitar division por cero en el calculo de altura
-            if (res.distancia < 0.001f) res.distancia = 0.001f;
-            break;
+        if (tp.sinColision) {
+            // Registrar el primer arco; el rayo sigue adelante
+            if (!res.hayArco) {
+                res.hayArco       = true;
+                res.distanciaArco = perpDist;
+                res.tipoArco      = tipo;
+                res.ladoXArco     = ladoX;
+            }
+            continue;
         }
+
+        // Pared solida: detener el rayo
+        res.golpeo    = true;
+        res.tipoPared = tipo;
+        res.ladoX     = ladoX;
+        res.distancia = perpDist;
+        break;
     }
 
     return res;
 }
 
 /*
-    HILO 1: Realiza raycast en paralelo para multiples columnas.
-    Calcula RayoResultado para cada columna y los almacena.
+    Renderiza un frame completo en tres pasos por columna:
+
+      Paso 1 (Fondo)   : cielo con gradiente + piso con gradiente
+      Paso 2 (Pared)   : pared solida o arbol encima del fondo
+      Paso 3 (Overlay) : marco del arco encima de todo
+
+    Despues superpone el minimapa y vuelca el buffer a la consola.
 */
-static void hilRaycaster(const Jugador& jugador, const Mapa& mapa, 
-                         int columnaInicio, int columnaFin) {
+void renderizarFrame(const Jugador& jugador, const Mapa& mapa) {
     const int mitad = ALTO_PANTALLA / 2;
 
-    for (int x = columnaInicio; x < columnaFin; x++) {
+    for (int x = 0; x < ANCHO_PANTALLA; x++) {
+
         float offset  = ((float)x / ANCHO_PANTALLA - 0.5f) * FOV;
         float angRayo = jugador.angulo + offset;
 
         RayoResultado rayo = lanzarRayo(jugador, mapa, angRayo);
 
-        // Calcular altura de la pared en pantalla
-        float multAltura = (rayo.golpeo) ? TIPOS_PARED[rayo.tipoPared].altura : 1.0f;
-        float dist       = (rayo.golpeo) ? rayo.distancia : DIST_MAX;
-        float altMuro    = ((float)ALTO_PANTALLA / dist) * multAltura;
-
-        ColumnaDatos col;
-        col.x = x;
-        col.rayo = rayo;
-        col.altMuro = altMuro;
-        col.buffer.resize(ALTO_PANTALLA);
-        col.completa = false;
-
-        {
-            std::lock_guard<std::mutex> lock(mutexRayos);
-            colasRayos[filaColasActual].push_back(col);
-        }
-    }
-}
-
-/*
-    HILO 2: Dibuja las columnas calculadas por el raycaster.
-    Lee la cola de rayos y dibuja cielo, muro y piso en el buffer.
-*/
-static void hilDibujador(const Mapa& mapa) {
-    const int mitad = ALTO_PANTALLA / 2;
-    
-    // Leer todas las columnas calculadas
-    std::vector<ColumnaDatos> columnasLocal;
-    
-    {
-        std::lock_guard<std::mutex> lock(mutexRayos);
-        columnasLocal = colasRayos[filaColasActual];
-    }
-
-    // Procesar cada columna
-    for (const auto& col : columnasLocal) {
-        int x = col.x;
-        const RayoResultado& rayo = col.rayo;
-        float altMuro = col.altMuro;
-
-        int inicio = (int)(mitad - altMuro * 0.5f);
-        int fin    = (int)(mitad + altMuro * 0.5f);
-        inicio     = std::max(0,               inicio);
-        fin        = std::min(ALTO_PANTALLA - 1, fin);
-
-        // Apariencia de la pared segun tipo y distancia
-        char charMuro  = ' ';
-        int  colorMuro = 8;
-
-        if (rayo.golpeo) {
-            float dist = rayo.distancia;
-            charMuro  = seleccionarCaracterTramaDistancia(dist, TIPOS_PARED[rayo.tipoPared].trama);
-            colorMuro = seleccionarColorMuro(dist, rayo.tipoPared, rayo.ladoX);
-        }
-
-        // -- Dibujar columna completa en el buffer --
+        // ── PASO 1: Fondo (toda la columna) ──────────────────────
 
         for (int y = 0; y < ALTO_PANTALLA; y++) {
-
-            if (y < inicio) {
-                // CIELO: gradiente descendente
+            if (y < mitad) {
+                // Cielo: mas oscuro en el techo, aclara hacia el horizonte
                 float t  = (float)y / (float)mitad;
-                int distancia = mitad - y;
-                dibujarCielo(x, y, mapa.idCielo, distancia);
-
-            } else if (y <= fin) {
-                // PARED
-                setCelda(x, y, charMuro, colorMuro);
-
+                int   cl = (t < 0.20f) ? 1 : COLOR_CIELO;
+                setCelda(x, y, CHAR_CIELO, cl);
             } else {
-                // PISO: gradiente ascendente
+                // Piso: mas oscuro en el horizonte, aclara hacia los pies
                 float t  = (float)(y - mitad) / (float)mitad;
-                int distancia = y - mitad;
-                dibujarSuelo(x, y, mapa.idSuelo, distancia);
+                char  ch = (t > 0.40f) ? CHAR_PISO : ' ';
+                int   cl = (t > 0.60f) ? 7 : COLOR_PISO;
+                setCelda(x, y, ch, cl);
             }
         }
-    }
-}
 
-/*
-    HILO 3: Dibuja el minimapa (actualmente en operacion simple).
-    En el futuro puede extenderse para otras funciones del HUD.
-*/
-static void hilMinimapa(const Jugador& jugador, const Mapa& mapa) {
-    dibujarMiniMapaEnBuffer(jugador, mapa);
-}
+        // ── PASO 2: Pared solida o arbol ─────────────────────────
 
-/*
-    Renderiza la escena 3D completa usando paralelismo:
-    - Hilo 1: Raycasting en paralelo
-    - Hilo 2: Dibujado en paralelo
-    - Hilo 3: Minimapa
-*/
-void renderizarFrame(const Jugador& jugador, const Mapa& mapa) {
-    if (!USAR_MULTIHILO) {
-        // Version secuencial (fallback)
-        const int mitad = ALTO_PANTALLA / 2;
+        if (rayo.golpeo) {
+            const TipoPared& tp   = TIPOS_PARED[rayo.tipoPared];
+            float            dist = rayo.distancia;
 
-        for (int x = 0; x < ANCHO_PANTALLA; x++) {
-            float offset  = ((float)x / ANCHO_PANTALLA - 0.5f) * FOV;
-            float angRayo = jugador.angulo + offset;
-            RayoResultado rayo = lanzarRayo(jugador, mapa, angRayo);
+            switch (tp.comportamiento) {
 
-            float multAltura = (rayo.golpeo) ? TIPOS_PARED[rayo.tipoPared].altura : 1.0f;
-            float dist       = (rayo.golpeo) ? rayo.distancia : DIST_MAX;
-            float altMuro    = ((float)ALTO_PANTALLA / dist) * multAltura;
+                case ComportamientoPared::NORMAL: {
+                    float altMuro = ((float)ALTO_PANTALLA / dist) * tp.altura;
+                    int   inicio  = std::max(0, (int)(mitad - altMuro * 0.5f));
+                    int   fin     = std::min(ALTO_PANTALLA - 1, (int)(mitad + altMuro * 0.5f));
 
-            int inicio = (int)(mitad - altMuro * 0.5f);
-            int fin    = (int)(mitad + altMuro * 0.5f);
-            inicio     = std::max(0,               inicio);
-            fin        = std::min(ALTO_PANTALLA - 1, fin);
+                    char charMuro  = seleccionarCaracter(dist, tp);
+                    int  colorMuro = seleccionarColor(dist, rayo.tipoPared, rayo.ladoX);
 
-            char charMuro  = ' ';
-            int  colorMuro = 8;
-
-            if (rayo.golpeo) {
-                charMuro  = seleccionarCaracterTramaDistancia(dist, TIPOS_PARED[rayo.tipoPared].trama);
-                colorMuro = seleccionarColorMuro(dist, rayo.tipoPared, rayo.ladoX);
-            }
-
-            for (int y = 0; y < ALTO_PANTALLA; y++) {
-                if (y < inicio) {
-                    float t  = (float)y / (float)mitad;
-                    int distancia = mitad - y;
-                    dibujarCielo(x, y, mapa.idCielo, distancia);
-                } else if (y <= fin) {
-                    setCelda(x, y, charMuro, colorMuro);
-                } else {
-                    float t  = (float)(y - mitad) / (float)mitad;
-                    int distancia = y - mitad;
-                    dibujarSuelo(x, y, mapa.idSuelo, distancia);
+                    for (int y = inicio; y <= fin; y++)
+                        setCelda(x, y, charMuro, colorMuro);
+                    break;
                 }
+
+                case ComportamientoPared::ARBOL:
+                    renderizarColumnaArbol(x, dist, rayo.tipoPared, rayo.ladoX);
+                    break;
+
+                default:
+                    break;   // ARCO con golpeo solido: no deberia ocurrir
             }
         }
 
-        dibujarMiniMapaEnBuffer(jugador, mapa);
-        volcarBuffer();
-        return;
-    }
+        // ── PASO 3: Overlay del arco (encima de fondo + pared) ───
 
-    // Version paralela con 3 hilos
-    
-    // Limpiar colas
-    {
-        std::lock_guard<std::mutex> lock(mutexRayos);
-        colasRayos[filaColasActual].clear();
-    }
-
-    // Hilo 1: Raycasting en paralelo (dividir trabajo)
-    int columnasPerThread = (ANCHO_PANTALLA + NUM_HILOS_RAYCASTER - 1) / NUM_HILOS_RAYCASTER;
-    std::vector<std::thread> hilosRaycast;
-    
-    for (int i = 0; i < NUM_HILOS_RAYCASTER; i++) {
-        int inicio = i * columnasPerThread;
-        int fin = std::min(inicio + columnasPerThread, ANCHO_PANTALLA);
-        if (inicio < ANCHO_PANTALLA) {
-            hilosRaycast.emplace_back(hilRaycaster, std::ref(jugador), std::ref(mapa), inicio, fin);
+        if (rayo.hayArco) {
+            renderizarColumnaArco(x, rayo.distanciaArco, rayo.tipoArco, rayo.ladoXArco);
         }
     }
 
-    // Esperar a que terminen todos los raycast threads
-    for (auto& t : hilosRaycast) {
-        t.join();
-    }
-
-    // Hilo 2: Dibujado
-    std::thread hiloDibujador(hilDibujador, std::ref(mapa));
-
-    // Hilo 3: Minimapa
-    std::thread hiloMinimap(hilMinimapa, std::ref(jugador), std::ref(mapa));
-
-    // Esperar a que terminen dibujado y minimapa
-    hiloDibujador.join();
-    hiloMinimap.join();
-
-    // Volcar buffer a pantalla (operacion secuencial de escritura)
+    dibujarMiniMapaEnBuffer(jugador, mapa);
     volcarBuffer();
 }
 
 /*
-    Dibuja la barra de estado debajo de la escena 3D.
-    Escribe directamente en la consola ya que esta fuera del
-    area del buffer (por debajo de la fila ALTO_PANTALLA).
+    Dibuja la barra de informacion (HUD) por debajo del area de juego.
+    Escribe directamente en la consola fuera del buffer.
 */
 void dibujarHUD(const Jugador& jugador, const Mapa& mapa) {
-    // Separador horizontal
     gotoxy(0, ALTO_PANTALLA);
     color(8);
     for (int i = 0; i < ANCHO_PANTALLA; i++) std::cout.put('-');
 
-    // Controles
-    gotoxy(1, ALTO_PANTALLA + 1);
-    color(8);
-    std::cout << "WASD: Mover";
+    gotoxy(1,  ALTO_PANTALLA + 1); color(8);  std::cout << "WASD: Mover";
+    gotoxy(14, ALTO_PANTALLA + 1); color(8);  std::cout << "Flechas: Girar";
+    gotoxy(30, ALTO_PANTALLA + 1); color(8);  std::cout << "ESC: Salir";
 
-    gotoxy(14, ALTO_PANTALLA + 1);
-    color(8);
-    std::cout << "Flechas: Girar";
-
-    gotoxy(30, ALTO_PANTALLA + 1);
-    color(8);
-    std::cout << "ESC: Salir";
-
-    // Nombre del mapa activo
-    gotoxy(45, ALTO_PANTALLA + 1);
-    color(14);
+    gotoxy(45, ALTO_PANTALLA + 1); color(14);
     std::cout << "[ " << mapa.nombre << " ]";
 
-    // Posicion actual del jugador
-    char posStr[32];
+    char posStr[40];
     snprintf(posStr, sizeof(posStr), "X:%.1f  Y:%.1f", jugador.x, jugador.y);
     gotoxy(ANCHO_PANTALLA - 20, ALTO_PANTALLA + 1);
     color(11);

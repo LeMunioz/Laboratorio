@@ -2,91 +2,62 @@
 
 /*
 ================================================================
-    config_paredes.cpp - Valores de la tabla de tipos de pared
+    config_paredes.cpp - Valores visuales de cada tipo de pared
 
-    Edita unicamente este archivo para cambiar la apariencia de
-    las paredes: colores, altura y caracter de textura.
-    No es necesario tocar ningun otro modulo del motor.
+    Edita SOLO este archivo para cambiar la apariencia de las
+    paredes. No es necesario modificar ningun otro modulo.
 
-    Campos de TipoPared:
-        colorCerca  - color cuando el jugador esta cerca
-        colorLejos  - color cuando el jugador esta lejos
-        altura      - multiplicador de altura de la pared en pantalla
-        trama       - string con patron de textura personalizado
-        nombre      - nombre descriptivo (solo para depuracion)
+    REFERENCIA DE COMPORTAMIENTOS:
+      ComportamientoPared::NORMAL  -> Pared solida estandar
+      ComportamientoPared::ARBOL   -> Tronco (colorCerca) + Follaje (colorLejos)
+                                      tramaCerca = char del tronco
+                                      tramaLejos = char del follaje
+      ComportamientoPared::ARCO    -> Sin colision, solo marco superior
+                                      sinColision debe ser true
+
+    CAMPOS:
+      colorCerca    colorLejos    colorMuyLejos    colorSombra
+      altura        tramaCerca    tramaLejos
+      sinColision   comportamiento    nombre
 ================================================================
 */
 
 const std::array<TipoPared, NUM_TIPOS_PARED> TIPOS_PARED = {{
-    /*  colorCerca  colorLejos  altura  trama           nombre              */
-    {   0,          0,          1.0f,   "",             "Vacio"             },  // 0
-    {   96,         102,        1.0f,   "| |",          "Pared Madera"      },  // 1
-    {   135,        136,        1.0f,   "{ }",          "Pared Piedra"      },  // 2
-    {   332,        324,        1.0f,   "[  ]",         "Pared Ladrillo"    },  // 3
-    {   313,        307,        1.0f,   "\\\\",         "Pared Azul"        },  // 4
-    {   399,        391,        1.0f,   "==--",         "Pared Acero"       },  // 5
-    {   313,        307,        2.5f,   "\\ \\",        "Pared Azul Alta"   },  // 6
-    {   332,        324,        0.5f,   "[ ]",          "Pared Ladrillo Baja"}, // 7
-}};
 
-/*
-    Paredes especiales que se renderizан como composiciones de dos pisos.
-    Indice 0 = Arbol (base angosta + copa)
-    Indice 1 = Poste (elemento unico pero especial)
-*/
-const std::array<ParedEspecial, NUM_PAREDES_ESPECIALES> PAREDES_ESPECIALES = {{
-    // Arbol: base con copa
-    {
-        true,           // activa
-        "Arbol",        // nombre
-        
-        // Parte inferior (tronco)
-        0.5f,           // alturaInf
-        96,             // colorCercaInf
-        102,            // colorLejosInf
-        "| |",          // tramaInf
-        
-        // Parte superior (copa)
-        1.2f,           // alturaSup
-        298,            // colorCercaSup
-        290,            // colorLejosSup
-        "# #"           // tramaSup
-    },
-    
-    // Poste: columna delgada
-    {
-        true,           // activa
-        "Poste",        // nombre
-        
-        // Parte inferior (base - basicamente todo el poste)
-        1.5f,           // alturaInf
-        382,            // colorCercaInf
-        375,            // colorLejosInf
-        "| | ",         // tramaInf
-        
-        // Parte superior (no se usa, pero definida)
-        0.0f,           // alturaSup
-        375,            // colorCercaSup
-        375,            // colorLejosSup
-        ""              // tramaSup
-    }
-}};
+    /*  cCerca  cLejos  cMuyLejos  cSombra  altura  tramaCerca tramaLejos sinCol  comportamiento                nombre        */
 
-/*
-    Tipos de cielo disponibles para los mapas.
-    Los cielos pueden tener patrones visuales como estrellas.
-*/
-const std::array<TipoCielo, NUM_TIPOS_CIELO> TIPOS_CIELO = {{
-    {   307,        "",                 "Cielo"         },  // 0: Cielo normal
-    {   15,         " .  .     .",      "Cielo Noche"   },  // 1: Noche con estrellas
-    {   6,          ".",                "Techo"         },  // 2: Techo interior
-}};
+    {   0,      0,      0,         0,       1.0f,   ' ',       ' ',       false,  ComportamientoPared::NORMAL,  "Vacio"               },  // 0
 
-/*
-    Tipos de suelo disponibles para los mapas.
-    Los suelos pueden tener patrones visuales como pasto o ladrillo.
-*/
-const std::array<TipoSuelo, NUM_TIPOS_SUELO> TIPOS_SUELO = {{
-    {   42,         "/ \\/",            "Pasto"         },  // 0: Hierba
-    {   8,          "-=-",              "Piso"          },  // 1: Piso gris
+    {   128,    136,    8,         16,      2.0f,   '#',       '-',       false,  ComportamientoPared::NORMAL,  "ParedPiedra"         },  // 1
+
+    {   76,     68,     8,         85,      2.0f,   '+',       '-',       false,  ComportamientoPared::NORMAL,  "ParedLadrillo"       },  // 2
+
+    {   96,     102,    8,         16,      2.0f,   '%',       '/',       false,  ComportamientoPared::NORMAL,  "ParedMadera"         },  // 3
+
+    {   315,    307,    8,         25,      2.0f,   '#',       '-',       false,  ComportamientoPared::NORMAL,  "ParedAzul"           },  // 4
+
+    {   135,    136,    8,         24,      2.0f,   '=',       '-',       false,  ComportamientoPared::NORMAL,  "ParedAcero"          },  // 5
+
+    {   191,    185,    8,         23,      3.5f,   '|',       ':',       false,  ComportamientoPared::NORMAL,  "ParedAzulAlta"       },  // 6
+
+    {   76,     68,     8,         84,      0.5f,   '@',       'O',       false,  ComportamientoPared::NORMAL,  "BardaLadrilloBaja"   },  // 7
+
+    /*
+        ARBOL: El renderer usa los campos de esta forma:
+          colorCerca / colorMuyLejos / colorSombra -> color del tronco
+          colorLejos                               -> color del follaje
+          tramaCerca                               -> caracter del tronco
+          tramaLejos                               -> caracter del follaje
+          altura                                   -> multiplicador de altura del follaje
+    */
+    //CTroncoC, CHojasC, CTroncoL, CTroncoS,
+    {   96,     162,    6,        88,      2.0f,   '|',       '8',       false,  ComportamientoPared::ARBOL,   "Arbol"               },  // 8
+
+    /*
+        ARCO: sinColision = true. El rayo pasa a traves y solo
+        se renderiza el marco superior (FRACCION_ARCO del alto total).
+        El jugador puede caminar por el hueco inferior.
+    */
+    {   128,    136,    8,         16,      4.0f,   '#',       '-',       true,   ComportamientoPared::ARCO,    "Arco"                },  // 9
+
 }};

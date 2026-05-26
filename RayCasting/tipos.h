@@ -1,80 +1,67 @@
 #pragma once
 #include <vector>
 #include <string>
-#include <mutex>
 
 /*
 ================================================================
     tipos.h - Definicion de todas las estructuras de datos
 
-    Este archivo centraliza los tipos del motor para evitar
-    dependencias circulares entre modulos. Todos los .h y .cpp
-    que necesiten estas estructuras deben incluir este archivo.
-    
-    CAMBIOS: Ahora soporta parallelismo con mutex y buffers
-    compartidos, paredes especiales, y sistemas de cielo/suelo.
+    Centraliza los tipos del motor para evitar dependencias
+    circulares. Cualquier modulo que necesite estas estructuras
+    solo debe incluir este archivo.
 ================================================================
 */
 
 /*
-    Descripcion visual de un tipo de pared.
-    La altura modifica cuanto espacio vertical ocupa la pared en
-    pantalla: 1.0 es normal, 2.0 es el doble de alto, 0.5 es barda.
-    La trama ahora puede ser una cadena personalizada.
+    Comportamiento especial de una celda de pared.
+    Determina como la renderiza el motor y si tiene colision fisica.
+
+    NORMAL : Pared solida convencional.
+    ARBOL  : Dos bandas (tronco + follaje) con huecos transparentes.
+    ARCO   : Sin colision. El rayo pasa a traves y solo se dibuja
+             el marco superior, dejando paso libre por debajo.
+*/
+enum class ComportamientoPared {
+    NORMAL,
+    ARBOL,
+    ARCO
+};
+
+/*
+    Descripcion visual y comportamiento de un tipo de pared.
+
+    Campos de color (indices de la libreria frontend):
+      colorCerca    - dist < DIST_CERCA
+      colorLejos    - DIST_CERCA <= dist < DIST_LEJOS
+      colorMuyLejos - dist >= DIST_LEJOS (normalmente gris 8)
+      colorSombra   - cara horizontal (!ladoX), independiente de distancia
+
+    Campos de caracter (textura):
+      tramaCerca    - dist < DIST_CHAR
+      tramaLejos    - dist >= DIST_CHAR
+
+    Otros campos:
+      altura        - multiplicador de altura en pantalla (1.0 = normal)
+      sinColision   - true: el jugador y el rayo pueden pasar a traves
+      comportamiento- define logica de renderizado especial
+      nombre        - descripcion para depuracion
 */
 struct TipoPared {
-    int         colorCerca;  // Color cuando el jugador esta cerca
-    int         colorLejos;  // Color cuando el jugador esta lejos
-    float       altura;      // Multiplicador de altura (1.0 = normal)
-    std::string trama;       // Patron de textura personalizado
-    const char* nombre;      // Nombre descriptivo para depuracion
+    int                 colorCerca;
+    int                 colorLejos;
+    int                 colorMuyLejos;
+    int                 colorSombra;
+    float               altura;
+    char                tramaCerca;
+    char                tramaLejos;
+    bool                sinColision;
+    ComportamientoPared comportamiento;
+    const char*         nombre;
 };
 
 /*
-    Pared especial que consiste en dos partes apiladas (ej: arbol).
-    Se renderiza como dos muros superpuestos con diferentes alturas y colores.
-*/
-struct ParedEspecial {
-    bool        activa;      // Si esta habilitada
-    std::string nombre;      // Nombre (ej: "Arbol", "Poste")
-    
-    // Parte inferior
-    float       alturaInf;   // Altura multiplicadora
-    int         colorCercaInf;
-    int         colorLejosInf;
-    std::string tramaInf;
-    
-    // Parte superior
-    float       alturaSup;   // Altura multiplicadora
-    int         colorCercaSup;
-    int         colorLejosSup;
-    std::string tramaSup;
-};
-
-/*
-    Configuracion de cielo para un mapa.
-    Define como se renderiza la mitad superior de la pantalla.
-*/
-struct TipoCielo {
-    int         color;       // Color base del cielo
-    std::string trama;       // Patron opcional (ej: estrellas)
-    const char* nombre;      // Nombre descriptivo
-};
-
-/*
-    Configuracion de suelo para un mapa.
-    Define como se renderiza la mitad inferior de la pantalla.
-*/
-struct TipoSuelo {
-    int         color;       // Color base del suelo
-    std::string trama;       // Patron opcional (ej: pasto)
-    const char* nombre;      // Nombre descriptivo
-};
-
-/*
-    Una celda del mapa. Solo almacena el tipo de pared.
-    tipo == 0 significa celda vacia (transitable por el jugador).
-    tipo  > 0 es un indice en la tabla TIPOS_PARED.
+    Una celda del mapa. tipo == 0 es espacio vacio.
+    tipo > 0 es un indice en la tabla TIPOS_PARED.
 */
 struct Celda {
     int tipo;
@@ -82,23 +69,20 @@ struct Celda {
 
 /*
     Datos completos de un mapa cargado desde el archivo.
-    El grid se indexa como:  celdas[fila][columna]
-    equivalente a:           celdas[y][x]
+    Se indexa como: celdas[fila][columna] == celdas[y][x]
 */
 struct Mapa {
-    std::string                      nombre;
-    int                              ancho;
-    int                              alto;
-    std::vector<std::vector<Celda>>  celdas;
-    float                            spawnX;
-    float                            spawnY;
-    float                            spawnAngulo;
-    int                              idCielo;  // Indice del tipo de cielo
-    int                              idSuelo;  // Indice del tipo de suelo
+    std::string                     nombre;
+    int                             ancho;
+    int                             alto;
+    std::vector<std::vector<Celda>> celdas;
+    float                           spawnX;
+    float                           spawnY;
+    float                           spawnAngulo;
 };
 
 /*
-    Estado del jugador: posicion en el mundo (coordenadas flotantes)
+    Estado del jugador: posicion en coordenadas flotantes
     y angulo de vision en radianes.
 */
 struct Jugador {
@@ -108,53 +92,33 @@ struct Jugador {
 };
 
 /*
-    Resultado de lanzar un rayo contra el mapa.
-    Contiene toda la informacion necesaria para dibujar
-    una columna de la pantalla con el algoritmo DDA.
+    Resultado de lanzar un rayo con el algoritmo DDA.
+
+    El rayo puede registrar DOS impactos en un mismo cast:
+      1. Un arco (sinColision=true): el rayo continua despues de el.
+      2. La primera pared solida detras del arco (o sin arco previo).
+
+    Esto permite renderizar el fondo visible a traves de un arco
+    y luego superponer el marco del arco como overlay.
 */
 struct RayoResultado {
-    float distancia;   // Distancia perpendicular a la pared impactada
-    int   tipoPared;   // Tipo de pared golpeada (indice 1-9)
-    bool  ladoX;       // true = golpeo cara vertical, false = horizontal
-    bool  golpeo;      // true si el rayo impacto alguna pared
+    // -- Pared solida --
+    float distancia;    // Distancia perpendicular a la pared
+    int   tipoPared;    // Indice en TIPOS_PARED
+    bool  ladoX;        // true = cara vertical, false = cara horizontal
+    bool  golpeo;       // true si el rayo impacto una pared solida
+
+    // -- Arco (pared sin colision) encontrado antes de la pared solida --
+    float distanciaArco;
+    int   tipoArco;
+    bool  ladoXArco;
+    bool  hayArco;      // true si se encontro al menos un arco en la trayectoria
 };
 
 /*
-    Una celda del buffer de pantalla del motor.
-    El renderer llena este buffer antes de volcarlo a la consola.
+    Una celda del buffer de pantalla del renderer.
 */
 struct CeldaPantalla {
-    char ch;   // Caracter a imprimir
-    int  col;  // Color (indice de la libreria frontend)
-};
-
-/*
-    Buffer compartido para el resultado de rayos de una columna.
-    Usado para comunicacion entre el hilo de raycasting y el de dibujado.
-*/
-struct ColumnaDatos {
-    int                  x;             // Columna X
-    RayoResultado        rayo;          // Resultado del raycast
-    float                altMuro;       // Altura calculada del muro
-    std::vector<CeldaPantalla> buffer;  // Pixeles a dibujar (ALTO_PANTALLA elementos)
-    bool                 completa;      // Flag: columna lista para dibujar
-};
-
-/*
-    Buffer compartido para datos del minimapa.
-    Usado para comunicacion entre el hilo principal y el de minimapa.
-*/
-struct MinimapaDatos {
-    std::vector<std::vector<CeldaPantalla>> buffer;  // Buffer 2D del minimapa
-    bool                 completo;      // Flag: minimapa listo
-    std::mutex           mutex;         // Proteccion de acceso concurrente
-};
-
-/*
-    Buffer compartido para toda la escena renderizada.
-    Usado para comunicacion entre hilo de dibujado y volcado final.
-*/
-struct BufferEscena {
-    std::vector<std::vector<CeldaPantalla>> pantalla;  // Buffer completo
-    std::mutex           mutex;         // Proteccion de acceso concurrente
+    char ch;
+    int  col;
 };

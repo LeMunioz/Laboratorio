@@ -22,7 +22,7 @@
 
 /*
 ================================================================
-    main.cpp - Inicio y bucle principal del juego
+    main.cpp - Punto de entrada y bucle principal del juego
 
     Estructura del programa:
       1. Configurar la consola (tamano, titulo, codepage)

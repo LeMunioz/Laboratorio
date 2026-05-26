@@ -2,8 +2,8 @@
 #  mapas.txt  -  Archivo de definicion de mapas del motor
 # ==============================================================
 #
-#  FORMATO DE UN BLOQUE DE MAPA:
-#  --------------------------------
+#  FORMATO:
+#  ─────────────────────────────────────────────────────────────
 #  [MAPA]
 #  nombre=Nombre del cuarto
 #  spawn=X Y ANGULO
@@ -11,48 +11,117 @@
 #  <filas del grid>
 #  [FIN]
 #
-#  REGLAS DEL GRID:
-#    - Cada caracter es una celda del mapa (digitos 0-9)
-#    - 0 = celda vacia (el jugador puede caminar)
-#    - 1-9 = pared con el tipo definido en config_paredes.cpp
-#    - El ancho y alto deben coincidir exactamente con el grid
-#    - Las lineas que empiezan con '#' son comentarios (ignoradas)
-#
-#  TABLA DE TIPOS DE PARED (definida en config_paredes.cpp):
-#    1 = Piedra gris         (altura normal)
-#    2 = Muro azul           (altura normal)
-#    3 = Columna alta verde  (muy alta, estrecha)
-#    4 = Ladrillo rojo       (altura normal)
-#    5 = Barda baja          (apenas media pared)
-#    6 = Madera              (altura normal)
-#    7 = Torre alta celeste  (extremadamente alta)
-#    8 = Muro violeta        (altura normal)
-#    9 = Placa de metal      (altura normal)
+#  TABLA DE TIPOS DE PARED:
+#  ─────────────────────────────────────────────────────────────
+#  0 = Espacio vacio            (el jugador puede caminar)
+#  1 = ParedPiedra              altura doble, textura '#' / '-'
+#  2 = ParedLadrillo            altura doble, textura '+' / '-'
+#  3 = ParedMadera              altura doble, textura '%' / '/'
+#  4 = ParedAzul                altura doble, textura '#' / '-'
+#  5 = ParedAcero               altura doble, textura '=' / '-'
+#  6 = ParedAzulAlta            altura 3.5x,  textura '|' / ':'
+#  7 = BardaLadrilloBaja        altura 0.5x,  textura '@' / 'O'
+#  8 = Arbol                    tronco '|' color 96 + follaje '#' color 162
+#  9 = Arco (sin colision)      solo dibuja marco superior, el jugador pasa
 #
 #  ANGULO DE SPAWN en radianes:
-#    0.0  = mirando al este (derecha)
-#    1.57 = mirando al sur  (abajo)
-#    3.14 = mirando al oeste (izquierda)
-#    4.71 = mirando al norte (arriba)
-#
+#    0.0  = mirando al este   1.57 = mirando al sur
+#    3.14 = mirando al oeste  4.71 = mirando al norte
 # ==============================================================
 
 
 # ==============================================================
-#  MAPA 1 - Pasillo de entrada
-#  Cuarto rectangular simple con diferentes tipos de pared
-#  para introducir al jugador a los controles.
+#  MAPA 1 - Pasillo de Entrada
+#  Presentacion de las paredes basicas y la barda baja.
 # ==============================================================
 [MAPA]
 nombre=Pasillo de Entrada
-spawn=2.5 2.5 0.0
+spawn=2.5 5.5 0.0
+22 12
+1111111111111111111111
+1000000000000000000001
+1000000000000000000001
+1000000777000000000001
+1000000000000000000001
+1000000000000000000001
+1000000000000000000001
+1000000777000000000001
+1000000000000000000001
+1000000000000000000001
+1000000000000000000001
+1111111111111111111111
+[FIN]
+
+
+# ==============================================================
+#  MAPA 2 - Sala de Columnas
+#  Columnas altas (tipo 6) y bardas bajas (tipo 7) interiores.
+#  Muestra el contraste de alturas.
+# ==============================================================
+[MAPA]
+nombre=Sala de Columnas
+spawn=4.5 4.5 0.0
+26 16
+44444444444444444444444444
+40000000000000000000000004
+40000000000000000000000004
+40000600000000000600000004
+40000000000000000000000004
+40007777777777777777700004
+40007000000000000007700004
+40007000000000000007700004
+40007000000000000007700004
+40007000000000000007700004
+40007777777777777777700004
+40000000000000000000000004
+40000600000000000600000004
+40000000000000000000000004
+40000000000000000000000004
+44444444444444444444444444
+[FIN]
+
+
+# ==============================================================
+#  MAPA 3 - Bosque Interior
+#  Demuestra los arboles (tipo 8): el jugador puede rodearlos
+#  y ver el cielo a traves de las ramas.
+# ==============================================================
+[MAPA]
+nombre=Bosque Interior
+spawn=3.5 3.5 0.0
+20 14
+11111111111111111111
+10000000000000000001
+10000000000000000001
+10008000808000800001
+10000000000000000001
+10000800000008000001
+10000000000000000001
+10008000808000800001
+10000000000000000001
+10000800000008000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+11111111111111111111
+[FIN]
+
+
+# ==============================================================
+#  MAPA 4 - Corredor con Arcos
+#  Los arcos (tipo 9) no tienen colision: el jugador los atraviesa.
+#  La pared detras se ve a traves del hueco del arco.
+# ==============================================================
+[MAPA]
+nombre=Corredor con Arcos
+spawn=2.5 4.5 0.0
 20 10
 11111111111111111111
 10000000000000000001
 10000000000000000001
-10000050500000000001
 10000000000000000001
-10000050500000000001
+19090909090909090901
+10000000000000000001
 10000000000000000001
 10000000000000000001
 10000000000000000001
@@ -61,58 +130,34 @@ spawn=2.5 2.5 0.0
 
 
 # ==============================================================
-#  MAPA 2 - Sala de columnas
-#  Cuarto amplio con columnas altas y barda baja interior.
-#  Muestra el contraste de alturas entre distintos tipos.
-# ==============================================================
-[MAPA]
-nombre=Sala de Columnas
-spawn=3.5 3.5 0.0
-24 14
-222222222222222222222222
-200000000000000000000002
-200000000000000000000002
-200000300000000300000002
-200000000000000000000002
-200055555555555555500002
-200050000000000050000002
-200050000000000050000002
-200055555555555555500002
-200000000000000000000002
-200000300000000300000002
-200000000000000000000002
-200000000000000000000002
-222222222222222222222222
-[FIN]
-
-
-# ==============================================================
-#  MAPA 3 - Laberinto de cuartos
-#  Varios cuartos interconectados con distintos materiales
-#  de pared. Explorar para descubrir los colores y tramas.
+#  MAPA 5 - Laberinto de Cuartos
+#  Mezcla de todos los materiales. Cada cuarto usa un tipo
+#  diferente de pared. Los arcos conectan algunos cuartos.
 # ==============================================================
 [MAPA]
 nombre=Laberinto de Cuartos
 spawn=2.5 2.5 0.0
-28 20
-4444444444444888888888444444
-4000000000004800000008000004
-4000000000000000000008000004
-4000000000004800000008000004
-4444444444444888888888000004
-4000000000000000000000000004
-4000444044004000000000000004
-4000000000004000666666666664
-4000000000004000600000000064
-4000444044004000600099996064
-4000000000004000600090906064
-4000000000004000600099906064
-4000444044004000600000006064
-4000000000004000666666666664
-4000000000004000000000000004
-4444440000444000000000000004
-4000000000000000000000000004
-4000000000000000000000000004
-4000000000000000000000000004
-4444444444444444444444444444
+30 22
+111111111111155555555555111111
+100000000001150000000005100001
+100000000001150000000005100001
+100000000001150000000005100001
+111911111111159555555595111111
+100000000000000000000000000001
+100800080000000000000000000001
+100000000000000000000000000001
+100800080000000000000000000001
+100000000000000000000000000001
+111911111111113333333331111111
+100000000001130000000003100001
+100000000001130000000003100001
+100000000001130000000003100001
+100000000001130000000003100001
+111111111111133333333331111111
+100000000000000000000000000001
+100000088800000000088800000001
+100000080800000000080800000001
+100000088800000000088800000001
+100000000000000000000000000001
+111111111111111111111111111111
 [FIN]

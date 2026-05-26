@@ -1,17 +1,18 @@
 #include "mapa.h"
+#include "config_paredes.h"
 #include <fstream>
 #include <sstream>
 
 /*
 ================================================================
-    mapa.cpp - Implementacion del modulo de mapas (ACTUALIZADO)
+    mapa.cpp - Implementacion del modulo de mapas
 
-    El parser ahora lee campos adicionales:
-      - cielo: ID del tipo de cielo (0-2)
-      - suelo: ID del tipo de suelo (0-1)
+    El parser lee el archivo linea por linea buscando bloques
+    [MAPA]...[FIN]. Dentro de cada bloque procesa metadatos
+    (nombre=, spawn=) y luego las filas del grid de digitos.
 
     Reglas del parser:
-      - Las lineas que comienzan con '#' son comentarios
+      - Las lineas que empiezan con '#' son comentarios
       - Las lineas vacias se ignoran
       - El grid se lee despues de la linea de dimensiones
       - Cada caracter del grid debe ser un digito '0'-'9'
@@ -19,9 +20,9 @@
 */
 
 /*
-    Convierte una linea de texto en un vector de celdas.
-    Solo procesa los caracteres que son digitos; ignora el resto.
-    Esto permite tener separadores visuales en el archivo de mapas.
+    Convierte una linea de texto en un vector de Celdas.
+    Solo procesa caracteres que son digitos; ignora el resto.
+    Esto permite agregar separadores visuales en el archivo.
 */
 static std::vector<Celda> parsearFila(const std::string& linea) {
     std::vector<Celda> fila;
@@ -35,10 +36,8 @@ static std::vector<Celda> parsearFila(const std::string& linea) {
 
 /*
     Lee el archivo completo y construye la lista de mapas.
-    Usa una maquina de estados simple: fuera de mapa, dentro de
-    mapa (leyendo metadatos), dentro de grid (leyendo filas).
-    
-    NUEVO: Lee campos de cielo y suelo con valores por defecto.
+    Usa una maquina de estados simple: fuera de mapa, dentro
+    de mapa (metadatos) y dentro de grid (filas de celdas).
 */
 std::vector<Mapa> cargarMapas(const std::string& ruta) {
     std::vector<Mapa> mapas;
@@ -48,21 +47,16 @@ std::vector<Mapa> cargarMapas(const std::string& ruta) {
 
     std::string linea;
     Mapa        actual;
-    bool        enMapa     = false;
-    bool        enGrid     = false;
+    bool        enMapa      = false;
+    bool        enGrid      = false;
     int         filasLeidas = 0;
 
     while (std::getline(archivo, linea)) {
 
-        // Ignorar comentarios y lineas vacias
         if (linea.empty() || linea[0] == '#') continue;
-
-        // -- Marcadores de bloque --
 
         if (linea == "[MAPA]") {
             actual      = Mapa{};
-            actual.idCielo = 0;  // Default cielo
-            actual.idSuelo = 0;  // Default suelo
             enMapa      = true;
             enGrid      = false;
             filasLeidas = 0;
@@ -78,8 +72,6 @@ std::vector<Mapa> cargarMapas(const std::string& ruta) {
 
         if (!enMapa) continue;
 
-        // -- Metadatos del mapa --
-
         if (linea.rfind("nombre=", 0) == 0) {
             actual.nombre = linea.substr(7);
             continue;
@@ -91,22 +83,7 @@ std::vector<Mapa> cargarMapas(const std::string& ruta) {
             continue;
         }
 
-        // NUEVO: Leer tipo de cielo
-        if (linea.rfind("cielo=", 0) == 0) {
-            std::istringstream ss(linea.substr(6));
-            ss >> actual.idCielo;
-            continue;
-        }
-
-        // NUEVO: Leer tipo de suelo
-        if (linea.rfind("suelo=", 0) == 0) {
-            std::istringstream ss(linea.substr(6));
-            ss >> actual.idSuelo;
-            continue;
-        }
-
-        // -- Dimensiones del grid (primera linea sin '=') --
-
+        // Primera linea sin '=' dentro del bloque: dimensiones del grid
         if (!enGrid && linea.find('=') == std::string::npos) {
             std::istringstream ss(linea);
             if (ss >> actual.ancho >> actual.alto) {
@@ -117,11 +94,9 @@ std::vector<Mapa> cargarMapas(const std::string& ruta) {
             continue;
         }
 
-        // -- Filas del grid --
-
         if (enGrid && filasLeidas < actual.alto) {
             auto fila = parsearFila(linea);
-            fila.resize(actual.ancho, { 0 });   // Completar con celdas vacias si falta ancho
+            fila.resize(actual.ancho, { 0 });
             actual.celdas.push_back(fila);
             filasLeidas++;
         }
@@ -131,19 +106,31 @@ std::vector<Mapa> cargarMapas(const std::string& ruta) {
 }
 
 /*
-    Verifica si la celda en la posicion flotante (x, y) esta libre.
-    Se convierte a entero truncando hacia abajo (floor implicito).
+    Verifica si la posicion flotante (x, y) es transitable.
+
+    Una celda es transitable si:
+      a) Esta vacia (tipo == 0), O
+      b) Su tipo tiene sinColision == true (ej: arcos)
+
+    Las coordenadas fuera de los limites del mapa NO son transitables.
 */
 bool esPosicionLibre(const Mapa& mapa, float x, float y) {
     int cx = (int)x;
     int cy = (int)y;
+
     if (cx < 0 || cy < 0 || cx >= mapa.ancho || cy >= mapa.alto) return false;
-    return mapa.celdas[cy][cx].tipo == 0;
+
+    int tipo = mapa.celdas[cy][cx].tipo;
+
+    if (tipo == 0) return true;
+
+    // Consultar la tabla: algunos tipos (ej: ARCO) no tienen colision fisica
+    return TIPOS_PARED[tipo].sinColision;
 }
 
 /*
     Retorna el tipo de celda en coordenadas enteras.
-    Los limites del mapa se tratan como paredes solidas (tipo 1).
+    Los limites del mapa se tratan como tipo 1 (pared solida).
 */
 int obtenerTipoCelda(const Mapa& mapa, int cx, int cy) {
     if (cx < 0 || cy < 0 || cx >= mapa.ancho || cy >= mapa.alto) return 1;
