@@ -58,6 +58,6 @@ const std::array<TipoPared, NUM_TIPOS_PARED> TIPOS_PARED = {{
         se renderiza el marco superior (FRACCION_ARCO del alto total).
         El jugador puede caminar por el hueco inferior.
     */
-    {   128,    136,    8,         16,      4.0f,   '#',       '-',       true,   ComportamientoPared::ARCO,    "Arco"                },  // 9
+    {   128,    136,    8,         16,      2.5f,   '#',       '-',       true,   ComportamientoPared::ARCO,    "Arco"                },  // 9
 
 }};
